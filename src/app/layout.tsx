@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   title: { default: "Commute Advisor", template: "%s · Commute Advisor" },
   description:
     "Car or motorcycle today, from the chance of rain on your commute",
+  // iPhone: lets the installed Home Screen app run standalone with a short label.
+  appleWebApp: { capable: true, title: "Commute", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

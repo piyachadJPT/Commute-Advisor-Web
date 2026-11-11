@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "icons": "node scripts/gen-icons.mjs",
+    "app-icons": "node scripts/gen-app-icons.mjs",
     "db:types": "supabase gen types typescript --schema public > src/lib/database.types.ts && prettier --write src/lib/database.types.ts",
     "db:reset": "supabase db reset",
     "test": "vitest run",
@@ -42,6 +43,7 @@
     "eslint-config-next": "16.4.6",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
+    "sharp": "0.35.5",
     "tailwindcss": "4.3.3",
     "typescript": "^5",
     "vitest": "5.1.0"

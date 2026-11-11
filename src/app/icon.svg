@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Commute Advisor</title>
+  <!-- Sky-blue ground. Everything that matters sits inside the central 360 px, so the same art
+       works as a maskable icon (the safe zone is a circle of radius ~205 at 512 px). -->
+  <rect width="512" height="512" fill="#2d78b8"/>
+  <!-- Rain cloud -->
+  <g fill="#ffffff">
+    <circle cx="196" cy="227" r="58"/>
+    <circle cx="262" cy="200" r="78"/>
+    <circle cx="330" cy="229" r="56"/>
+    <rect x="138" y="235" width="248" height="50" rx="25"/>
+  </g>
+  <!-- Rain either side of the wheel -->
+  <g stroke="#c4e4ff" stroke-width="12" stroke-linecap="round">
+    <path d="M150 312 136 342M174 332 160 362M362 312 376 342M338 332 352 362"/>
+  </g>
+  <!-- Wheel: tyre ring, six spokes, hub -->
+  <g stroke="#ffd77a" stroke-linecap="round" fill="none">
+    <circle cx="256" cy="354" r="54" stroke-width="16"/>
+    <path stroke-width="7" d="M256 354V308M256 354l40-23M256 354l40 23M256 354v46M256 354l-40 23M256 354l-40-23"/>
+  </g>
+  <circle cx="256" cy="354" r="9" fill="#ffd77a"/>
+</svg>
