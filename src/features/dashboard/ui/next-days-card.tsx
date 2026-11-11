@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Icon } from "@/components/icon";
 import type { Locale } from "@/i18n/config";
 import { formatDayMonth, formatWeekdayShort } from "@/lib/time/format";
-import type { NextDayView } from "../mock";
+import type { NextDayView } from "../view";
 import { VEHICLE_STYLE } from "./risk-style";
 
 /** Upcoming commute days inside the 3-day forecast (§11.2 item 7). */

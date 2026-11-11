@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { HourlySeries } from "../mock";
-import { FIRST_HOUR } from "../mock";
+import type { HourlySeries } from "../view";
+import { FIRST_HOUR } from "../view";
 import { RISK_STYLE, riskLevel } from "./risk-style";
 
 type Series = "max" | "home" | "work";

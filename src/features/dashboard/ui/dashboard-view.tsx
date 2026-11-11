@@ -1,35 +1,43 @@
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { Icon } from "@/components/icon";
+import { localDateOf } from "@/features/commute/domain/tz";
 import type { Locale } from "@/i18n/config";
-import { formatClock, formatHeaderDate } from "@/lib/time/format";
+import {
+  formatClock,
+  formatDayMonth,
+  formatHeaderDate,
+} from "@/lib/time/format";
+import { refreshForecast, unskipToday } from "../actions";
 import {
   FIRST_HOUR,
   type DashboardView as View,
   type HourlySeries,
   type ReasonView,
-} from "../mock";
+} from "../view";
 import { Hero } from "./hero";
 import { HourlyChartCard } from "./hourly-chart-card";
 import { NextDaysCard } from "./next-days-card";
 import { NowCard } from "./now-card";
+import { RefreshButton } from "./refresh-button";
 import { SKY_FOR } from "./risk-style";
 import { Sky } from "./sky";
 import { TripsCard } from "./trips-card";
 import { WeekCard } from "./week-card";
 
-// Bucket labels per trip for the mock windows (§5.1): 08:20–09:20 → 09, 10; 18:00–19:00 → 19.
-const DEPARTURE_BUCKETS = [9, 10];
-const RETURN_BUCKETS = [19];
-
 type Translate = Awaited<ReturnType<typeof getTranslations<"dashboard">>>;
+
+const TIME_ZONE = "Asia/Bangkok"; // fixed in v2.0 (plan §2)
+const DEFAULT_THRESHOLD = 50; // the fixed risk labels are built around 50%
 
 export async function DashboardView({
   view,
   locale,
+  now,
 }: {
   view: View;
   locale: Locale;
+  now: Date;
 }) {
   const t = await getTranslations("dashboard");
   const sky = SKY_FOR[view.vehicle];
@@ -38,6 +46,7 @@ export async function DashboardView({
     return h === null || w === null ? null : Math.max(h, w);
   });
   const series = { max, home: view.hourly.home, work: view.hourly.work };
+  const needsRefresh = view.fetchedAt === null || view.stale;
 
   return (
     <div data-sky={sky}>
@@ -51,25 +60,42 @@ export async function DashboardView({
           </p>
           <p className="text-caption text-hero-2">{t("route", view.route)}</p>
         </div>
-        <button
-          type="button"
-          aria-label={t("refresh")}
-          className="grid size-11 shrink-0 place-items-center rounded-tile border border-glass-line bg-(--hero-chip-bg) backdrop-blur-md transition-colors duration-(--duration-fast) hover:bg-glass"
-        >
-          <Icon name="refresh" className="size-[1.375rem]" />
-        </button>
+        <form action={refreshForecast}>
+          <RefreshButton label={t("refresh")} />
+        </form>
       </header>
 
-      {view.stale ? (
-        <button
-          type="button"
-          className="mt-2 flex min-h-11 w-full items-center gap-2 rounded-tile bg-warn-surface px-4 py-2 text-left text-label font-medium text-warn-ink shadow-glass"
+      {needsRefresh ? (
+        <form action={refreshForecast} className="mt-2">
+          <button
+            type="submit"
+            className="flex min-h-11 w-full items-center gap-2 rounded-tile bg-warn-surface px-4 py-2 text-left text-label font-medium text-warn-ink shadow-glass"
+          >
+            <Icon name="warning" className="size-5 shrink-0" />
+            <span className="tabular">
+              {view.fetchedAt === null
+                ? t("noForecast")
+                : t("stale", {
+                    when: fetchedWhen(view.fetchedAt, now, locale, t),
+                  })}
+            </span>
+          </button>
+        </form>
+      ) : null}
+
+      {view.skippedToday ? (
+        <form
+          action={unskipToday}
+          className="mt-2 flex min-h-11 items-center justify-between gap-3 rounded-tile bg-glass px-4 py-1 text-label shadow-glass"
         >
-          <Icon name="warning" className="size-5 shrink-0" />
-          <span className="tabular">
-            {t("stale", { time: formatClock(view.fetchedAt, locale) })}
-          </span>
-        </button>
+          <p className="font-medium">{t("skippedToday")}</p>
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center px-1 font-semibold text-primary"
+          >
+            {t("unskip")}
+          </button>
+        </form>
       ) : null}
 
       <div className="mt-2 grid grid-cols-1 gap-3.5 lg:grid-cols-12 lg:items-start lg:gap-[1.125rem]">
@@ -86,9 +112,17 @@ export async function DashboardView({
           departure={view.departure}
           returnTrip={view.returnTrip}
           threshold={view.threshold}
-          updatedLabel={t("updated", {
-            time: formatClock(view.fetchedAt, locale),
-          })}
+          canSkip={view.canSkip}
+          warning={
+            view.returnWarning === null
+              ? null
+              : t("returnWarning", { risk: view.returnWarning })
+          }
+          updatedLabel={
+            view.fetchedAt === null
+              ? t("notFetched")
+              : t("updated", { time: formatClock(view.fetchedAt, locale) })
+          }
         />
         <HourlyChartCard
           className="lg:col-span-8"
@@ -98,10 +132,14 @@ export async function DashboardView({
           windows={[
             {
               label: t("trip.departure"),
-              startHour: 8 + 20 / 60,
-              endHour: 9 + 20 / 60,
+              startHour: view.windows.departure.startHour,
+              endHour: view.windows.departure.endHour,
             },
-            { label: t("trip.return"), startHour: 18, endHour: 19 },
+            {
+              label: t("trip.return"),
+              startHour: view.windows.return.startHour,
+              endHour: view.windows.return.endHour,
+            },
           ]}
           labels={{
             title: t("chart.title"),
@@ -113,9 +151,9 @@ export async function DashboardView({
               work: t("chart.series.work"),
             },
             summary: {
-              max: summary(t, "max", series.max, view.threshold),
-              home: summary(t, "home", series.home, view.threshold),
-              work: summary(t, "work", series.work, view.threshold),
+              max: summary(t, "max", series.max, view),
+              home: summary(t, "home", series.home, view),
+              work: summary(t, "work", series.work, view),
             },
           }}
         />
@@ -134,6 +172,22 @@ export async function DashboardView({
   );
 }
 
+/** "21:10" for today, "10 พ.ย. 21:10" for an earlier day. */
+function fetchedWhen(
+  fetchedAt: Date,
+  now: Date,
+  locale: Locale,
+  t: Translate,
+): string {
+  const clock = formatClock(fetchedAt, locale);
+  return localDateOf(fetchedAt, TIME_ZONE) === localDateOf(now, TIME_ZONE)
+    ? clock
+    : t("staleOtherDay", {
+        day: formatDayMonth(fetchedAt, locale),
+        time: clock,
+      });
+}
+
 function windowMax(values: HourlySeries, buckets: number[]): number | null {
   let max: number | null = null;
   for (const hour of buckets) {
@@ -148,15 +202,15 @@ function summary(
   t: Translate,
   key: "max" | "home" | "work",
   values: HourlySeries,
-  threshold: number,
+  view: View,
 ): string {
-  const dep = windowMax(values, DEPARTURE_BUCKETS);
-  const ret = windowMax(values, RETURN_BUCKETS);
+  const dep = windowMax(values, view.windows.departure.buckets);
+  const ret = windowMax(values, view.windows.return.buckets);
   return t("chart.summary", {
     series: t(`chart.series.${key}`),
     dep: dep ?? t("chart.noData"),
     ret: ret ?? t("chart.noData"),
-    threshold,
+    threshold: view.threshold,
   });
 }
 
@@ -164,25 +218,39 @@ function renderReason(reason: ReasonView, t: Translate): ReactNode {
   const b = (chunks: ReactNode) => <b>{chunks}</b>;
   switch (reason.code) {
     case "departureHigh":
-    case "returnHigh":
-      return t.rich(`reason.${reason.code}`, {
-        b,
-        risk: reason.risk,
-        source: t(`location.${reason.source}`),
-        window: reason.window,
-      });
+    case "returnHigh": {
+      const p = reason.params;
+      const other = reason.code === "departureHigh" ? "return" : "departure";
+      return (
+        <>
+          {t.rich(`reason.${reason.code}`, {
+            b,
+            risk: p.risk,
+            source: t(`location.${p.source}`),
+            window: p.window,
+          })}
+          {/* A custom threshold can disagree with the fixed label, so state it (plan §5.4). */}
+          {p.threshold !== DEFAULT_THRESHOLD
+            ? ` · ${t("reason.aboveThreshold", { threshold: p.threshold })}`
+            : null}
+          {p.otherIncomplete
+            ? ` · ${t("reason.otherIncomplete", { trip: t(`trip.${other}`) })}`
+            : null}
+        </>
+      );
+    }
     case "bothLow":
       return t.rich("reason.bothLow", {
         b,
-        threshold: reason.threshold,
-        max: reason.max,
+        threshold: reason.params.threshold,
+        max: reason.params.max,
       });
     case "incomplete":
       return t.rich("reason.incomplete", {
         b,
-        trip: t(`trip.${reason.trip}`),
-        source: t(`location.${reason.source}`),
-        hours: reason.hours,
+        trip: t(`trip.${reason.params.trip}`),
+        source: t(`location.${reason.params.source}`),
+        hours: reason.params.hours,
       });
   }
 }

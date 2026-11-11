@@ -28,7 +28,9 @@
       "departureHigh": "<b>{risk}%</b> chance of rain on the way in, at {source} ({window})",
       "returnHigh": "<b>{risk}%</b> chance of rain on the way home, at {source} ({window})",
       "bothLow": "Both trips below the {threshold}% threshold · highest <b>{max}%</b>",
-      "incomplete": "No rain probability yet for the {trip} trip at {source} ({hours})"
+      "incomplete": "No rain probability yet for the {trip} trip at {source} ({hours})",
+      "aboveThreshold": "above your {threshold}% threshold",
+      "otherIncomplete": "{trip} has no data yet"
     },
     "trips": "Outbound and return",
     "trip": {
@@ -56,7 +58,7 @@
     },
     "updated": "Updated {time}",
     "skipToday": "Skip today",
-    "stale": "Data from {time} yesterday · tap to update",
+    "stale": "Data from {when} · tap to update",
     "chart": {
       "title": "Hourly chance of rain",
       "subtitle": "Today · blue bands are your trips · dashed line is the {threshold}% threshold",
@@ -109,6 +111,24 @@
         "pending": "Pending"
       },
       "forecast": "Forecast {risk}%"
+    },
+    "noForecast": "No forecast fetched yet · tap to update",
+    "notFetched": "Not updated yet",
+    "staleOtherDay": "{day} {time}",
+    "skippedToday": "Today is skipped",
+    "unskip": "Undo",
+    "returnWarning": "Return rain risk is now {risk}% · bring rain gear",
+    "setup": {
+      "locations": {
+        "title": "Set your home and work",
+        "body": "The recommendation needs a forecast for both places.",
+        "cta": "Open settings"
+      },
+      "days": {
+        "title": "No commute days selected",
+        "body": "Choose at least one commute day in Settings.",
+        "cta": "Open settings"
+      }
     }
   },
   "placeholder": {
@@ -125,6 +145,66 @@
       "title": "Account",
       "signedInAs": "Signed in as {email}",
       "signOut": "Sign out"
+    },
+    "locations": {
+      "title": "Locations",
+      "home": "Home",
+      "work": "Work",
+      "notSet": "Not set",
+      "custom": "Custom location"
+    },
+    "commute": {
+      "title": "Commute",
+      "departure": "Outbound",
+      "return": "Return",
+      "duration": "Window length (minutes)",
+      "days": "Commute days"
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "analysis": {
+      "title": "Analysis",
+      "threshold": "Rain threshold",
+      "preview": "If the chance of rain is {value}% or more, the app recommends the car"
+    },
+    "save": "Save",
+    "saving": "Saving",
+    "saved": "Saved",
+    "errors": {
+      "invalid": "Check the values and try again",
+      "failed": "Could not save. Try again."
+    },
+    "location": {
+      "title": {
+        "home": "Home location",
+        "work": "Work location"
+      },
+      "back": "Back to settings",
+      "search": "Search for a place",
+      "searchHint": "Type at least 2 characters",
+      "searching": "Searching",
+      "noResults": "No places found",
+      "searchFailed": "Search is unavailable right now",
+      "useCurrent": "Use my current location",
+      "locating": "Locating",
+      "currentName": "Current location",
+      "geoDenied": "Location access was denied. Search for a place or enter coordinates.",
+      "manual": "Enter coordinates",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "name": "Name",
+      "precisionNote": "Saved rounded to about 100 m.",
+      "save": "Save location",
+      "saving": "Saving",
+      "invalid": "Check the coordinates and try again",
+      "failed": "Could not save. Try again."
     }
   },
   "auth": {

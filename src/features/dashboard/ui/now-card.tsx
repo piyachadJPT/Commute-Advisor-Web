@@ -1,12 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Icon } from "@/components/icon";
-import type { NowView } from "../mock";
+import type { NowView } from "../view";
 import { condition } from "./condition";
 
 /** Current-hour forecast for one location (§11.2 item 6). */
 export async function NowCard({ now }: { now: NowView }) {
   const t = await getTranslations("dashboard");
-  const c = condition(now.weatherCode);
+  const c = now.weatherCode === null ? null : condition(now.weatherCode);
   const place = t(`place.${now.location}`);
 
   return (
@@ -24,23 +24,33 @@ export async function NowCard({ now }: { now: NowView }) {
             {place}
           </h2>
           <p className="flex items-center gap-1 text-caption text-ink-3">
-            <Icon name={c.icon} className="size-4 shrink-0" />
+            {c ? <Icon name={c.icon} className="size-4 shrink-0" /> : null}
             <span className="min-w-0">
-              {t(`wmo.${c.key}`)} · {now.placeName}
+              {c ? `${t(`wmo.${c.key}`)} · ` : null}
+              {now.placeName}
             </span>
           </p>
         </div>
-        <p className="text-temp font-semibold tabular">{now.temperature}°</p>
+        <p className="text-temp font-semibold tabular">
+          {now.temperature === null ? "—" : `${now.temperature}°`}
+        </p>
       </div>
       <dl className="mt-3 grid grid-cols-1 gap-2 @min-[17rem]:grid-cols-3">
         <Stat
           label={t("now.rain")}
           value={now.rainProbability === null ? "—" : `${now.rainProbability}%`}
         />
-        <Stat label={t("now.humidity")} value={`${now.humidity}%`} />
+        <Stat
+          label={t("now.humidity")}
+          value={now.humidity === null ? "—" : `${now.humidity}%`}
+        />
         <Stat
           label={t("now.wind")}
-          value={t("now.windValue", { speed: now.windSpeed })}
+          value={
+            now.windSpeed === null
+              ? "—"
+              : t("now.windValue", { speed: now.windSpeed })
+          }
         />
       </dl>
     </section>

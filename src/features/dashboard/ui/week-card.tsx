@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Icon } from "@/components/icon";
 import type { Locale } from "@/i18n/config";
 import { formatDateRange, formatWeekdayCompact } from "@/lib/time/format";
-import type { WeekDayView } from "../mock";
+import type { WeekDayView } from "../view";
 import { VEHICLE_STYLE } from "./risk-style";
 
 /** Mon–Fri at a glance: locked past days, today, forecast days (§11.2 item 8). */

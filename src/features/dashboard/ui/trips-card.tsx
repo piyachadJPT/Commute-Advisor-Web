@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import { Icon } from "@/components/icon";
-import type { TripView } from "../mock";
+import { skipToday } from "../actions";
+import type { TripView } from "../view";
 import { RISK_STYLE } from "./risk-style";
 
 type TripsCardProps = {
@@ -8,6 +9,10 @@ type TripsCardProps = {
   returnTrip: TripView;
   threshold: number;
   updatedLabel: string;
+  /** The target is today, so "skip today" applies. */
+  canSkip: boolean;
+  /** Live return-risk warning for a locked motorcycle day (plan §5.7). */
+  warning: string | null;
   className?: string;
 };
 
@@ -17,6 +22,8 @@ export async function TripsCard({
   returnTrip,
   threshold,
   updatedLabel,
+  canSkip,
+  warning,
   className = "",
 }: TripsCardProps) {
   const t = await getTranslations("dashboard");
@@ -35,18 +42,31 @@ export async function TripsCard({
           <Trip trip={returnTrip} threshold={threshold} />
         </div>
       </div>
+      {warning ? (
+        <p
+          role="status"
+          className="mx-[1.125rem] mb-3 flex items-start gap-2 rounded-tile bg-warn-surface px-3 py-2 text-label font-medium text-warn-ink"
+        >
+          <Icon name="warning" className="mt-0.5 size-[1.125rem] shrink-0" />
+          {warning}
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-divider px-[1.125rem] py-3">
         <p className="flex items-center gap-1.5 text-caption text-ink-3">
           <Icon name="schedule" className="size-4" />
           <span className="tabular">{updatedLabel}</span>
         </p>
-        <button
-          type="button"
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-divider px-3.5 text-label font-semibold whitespace-nowrap text-primary transition-colors duration-(--duration-fast) hover:bg-fill-soft"
-        >
-          <Icon name="eventBusy" className="size-[1.125rem]" />
-          {t("skipToday")}
-        </button>
+        {canSkip ? (
+          <form action={skipToday}>
+            <button
+              type="submit"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-divider px-3.5 text-label font-semibold whitespace-nowrap text-primary transition-colors duration-(--duration-fast) hover:bg-fill-soft"
+            >
+              <Icon name="eventBusy" className="size-[1.125rem]" />
+              {t("skipToday")}
+            </button>
+          </form>
+        ) : null}
       </div>
     </section>
   );

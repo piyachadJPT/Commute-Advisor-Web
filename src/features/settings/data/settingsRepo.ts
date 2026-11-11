@@ -71,3 +71,66 @@ export async function updateLocation(
   });
   if (error) throw new Error(`update_location failed: ${error.message}`);
 }
+
+export type UserSettings = {
+  departureTime: string; // "HH:mm"
+  returnTime: string;
+  durationMinutes: number;
+  threshold: number;
+  commuteDays: number;
+  timeZone: string;
+  home: { name: string | null; isSet: boolean };
+  work: { name: string | null; isSet: boolean };
+};
+
+/** Everything the Settings screen shows. Null if the user has no settings row. */
+export async function getUserSettings(
+  supabase: Client,
+  userId: string,
+): Promise<UserSettings | null> {
+  const { data, error } = await supabase
+    .from("settings")
+    .select(
+      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, home_latitude, home_name, work_latitude, work_name",
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`settings read failed: ${error.message}`);
+  if (!data) return null;
+  return {
+    departureTime: data.departure_time.slice(0, 5), // Postgres returns HH:mm:ss
+    returnTime: data.return_time.slice(0, 5),
+    durationMinutes: data.analysis_duration_minutes,
+    threshold: data.rain_threshold,
+    commuteDays: data.commute_days,
+    timeZone: data.timezone,
+    home: { name: data.home_name, isSet: data.home_latitude !== null },
+    work: { name: data.work_name, isSet: data.work_latitude !== null },
+  };
+}
+
+export type CommutePatch = {
+  departureTime: string;
+  returnTime: string;
+  durationMinutes: number;
+  threshold: number;
+  commuteDays: number;
+};
+
+export async function updateCommuteSettings(
+  supabase: Client,
+  userId: string,
+  patch: CommutePatch,
+): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .update({
+      departure_time: patch.departureTime,
+      return_time: patch.returnTime,
+      analysis_duration_minutes: patch.durationMinutes,
+      rain_threshold: patch.threshold,
+      commute_days: patch.commuteDays,
+    })
+    .eq("user_id", userId);
+  if (error) throw new Error(`settings update failed: ${error.message}`);
+}
