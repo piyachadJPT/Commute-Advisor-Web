@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { Suspense } from "react";
 import { LocaleRoot } from "@/components/shell/locale-root";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ShellSkeleton } from "@/components/shell/shell-skeleton";
 import "@/styles/globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="th" className={plex.variable}>
       <body className="min-h-dvh">
+        <ServiceWorkerRegister />
         <Suspense fallback={<ShellSkeleton />}>
           <LocaleRoot>{children}</LocaleRoot>
         </Suspense>

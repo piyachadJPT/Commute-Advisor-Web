@@ -79,3 +79,53 @@ export async function recordFailure(
   if (error)
     throw new Error(`push_subscriptions update failed: ${error.message}`);
 }
+
+/** Adds this device, or refreshes its keys if the same browser subscribes again (unique endpoint). */
+export async function saveSubscription(
+  supabase: Client,
+  userId: string,
+  sub: { endpoint: string; keys: { p256dh: string; auth: string } },
+  userAgent: string | null,
+): Promise<void> {
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: userId,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      user_agent: userAgent?.slice(0, 512) ?? null,
+      failure_count: 0,
+    },
+    { onConflict: "endpoint" },
+  );
+  if (error)
+    throw new Error(`push_subscriptions save failed: ${error.message}`);
+}
+
+export async function deleteByEndpoint(
+  supabase: Client,
+  userId: string,
+  endpoint: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("endpoint", endpoint);
+  if (error)
+    throw new Error(`push_subscriptions delete failed: ${error.message}`);
+}
+
+export async function deleteById(
+  supabase: Client,
+  userId: string,
+  id: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", id);
+  if (error)
+    throw new Error(`push_subscriptions delete failed: ${error.message}`);
+}

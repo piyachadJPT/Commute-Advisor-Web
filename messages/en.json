@@ -233,6 +233,46 @@
         "link": "Weather data by Open-Meteo.com",
         "license": "Open-Meteo data is licensed under"
       }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "toggle": "Morning notification on this device",
+      "arrival": "Arrives about {from}–{to}",
+      "denied": "Notifications are blocked for this site. Allow them in your browser or system settings, then turn this on again.",
+      "unsupported": "This browser cannot receive push notifications.",
+      "notConfigured": "Push is not set up on the server yet.",
+      "error": "Something went wrong. Try again.",
+      "ios": {
+        "title": "Add to Home Screen first",
+        "step1": "In Safari, tap the Share button.",
+        "step2": "Choose Add to Home Screen.",
+        "step3": "Open Commute Advisor from the Home Screen and turn notifications on there.",
+        "note": "iPhone and iPad need iOS 16.4 or later."
+      },
+      "time": "Notification time",
+      "hours": "Hour",
+      "minutes": "Minute",
+      "done": "Done",
+      "saveTime": "Save time",
+      "saving": "Saving",
+      "saved": "Saved",
+      "devices": {
+        "title": "Devices",
+        "none": "No device is subscribed.",
+        "thisDevice": "This device",
+        "added": "Added {date}",
+        "last": "last delivered {time}",
+        "never": "not delivered yet",
+        "remove": "Remove",
+        "removeAria": "Remove {name}"
+      },
+      "test": {
+        "button": "Send a test notification",
+        "sent": "Sent to {count, plural, one {# device} other {# devices}}",
+        "noDevice": "No device to send to",
+        "notConfigured": "Push is not set up on the server yet.",
+        "failed": "Could not send"
+      }
     }
   },
   "auth": {
@@ -324,9 +364,7 @@
     "notifications": {
       "title": "Morning notification",
       "body": "On each commute day at {time} you get one message with the vehicle and the main reason, built from a forecast fetched shortly before.",
-      "example": "Car · return trip 70% chance of rain",
-      "iphone": "On iPhone, notifications need the app added to the Home Screen first (iOS 16.4 or later).",
-      "unavailable": "Notifications are not switched on yet. The recommendation works without them."
+      "example": "Car · return trip 70% chance of rain"
     }
   }
 }

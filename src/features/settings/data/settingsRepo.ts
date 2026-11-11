@@ -184,3 +184,39 @@ export async function listActiveUserIds(supabase: Client): Promise<string[]> {
   if (error) throw new Error(`settings read failed: ${error.message}`);
   return data.map((r) => r.user_id);
 }
+
+export async function setNotificationsEnabled(
+  supabase: Client,
+  userId: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .update({ notifications_enabled: enabled })
+    .eq("user_id", userId);
+  if (error) throw new Error(`settings update failed: ${error.message}`);
+}
+
+export async function updateNotificationTime(
+  supabase: Client,
+  userId: string,
+  time: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .update({ notification_time: time })
+    .eq("user_id", userId);
+  if (error) throw new Error(`settings update failed: ${error.message}`);
+}
+
+export async function updateLocalePreference(
+  supabase: Client,
+  userId: string,
+  locale: "th" | "en",
+): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .update({ locale })
+    .eq("user_id", userId);
+  if (error) throw new Error(`settings update failed: ${error.message}`);
+}

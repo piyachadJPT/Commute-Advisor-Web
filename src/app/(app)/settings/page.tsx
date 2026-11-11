@@ -3,13 +3,18 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { signOut } from "@/features/auth/actions";
+import { listSubscriptions } from "@/features/notifications/data/pushSubscriptionRepo";
+import { deviceLabel } from "@/features/notifications/domain/device";
+import { NotificationsSection } from "@/features/notifications/ui/notifications-section";
 import { getUserSettings } from "@/features/settings/data/settingsRepo";
 import { CommuteForm } from "@/features/settings/ui/commute-form";
 import { card, cardTitle, quietButton } from "@/features/settings/ui/styles";
 import { setLocale } from "@/i18n/actions";
-import { locales } from "@/i18n/config";
+import { defaultLocale, isLocale, locales } from "@/i18n/config";
 import { requireUser } from "@/lib/auth/session";
+import { pushEnv } from "@/lib/env.server";
 import { createClient } from "@/lib/supabase/server";
+import { formatDayMonth, formatStamp } from "@/lib/time/format";
 
 export default function SettingsPage() {
   return (
@@ -34,7 +39,19 @@ async function SettingsContent() {
     getTranslations("settings"),
     requireUser(),
   ]);
-  const settings = await getUserSettings(await createClient(), user.id);
+  const supabase = await createClient();
+  const settings = await getUserSettings(supabase, user.id);
+  const localeRaw = await getLocale();
+  const locale = isLocale(localeRaw) ? localeRaw : defaultLocale;
+  const devices = (await listSubscriptions(supabase, user.id)).map((d) => ({
+    id: d.id,
+    label: deviceLabel(d.userAgent),
+    endpoint: d.endpoint,
+    addedLabel: formatDayMonth(new Date(d.createdAt), locale),
+    lastLabel: d.lastSuccessAt
+      ? formatStamp(new Date(d.lastSuccessAt), locale)
+      : null,
+  }));
   if (!settings) throw new Error("No settings row for the signed-in user");
 
   const places = [
@@ -84,6 +101,12 @@ async function SettingsContent() {
             </ul>
           </section>
 
+          <NotificationsSection
+            variant="settings"
+            vapidKey={pushEnv()?.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+            notificationTime={settings.notificationTime}
+            devices={devices}
+          />
           <LanguageSection />
           <section aria-labelledby="about-title" className={card}>
             <h2 id="about-title" className={cardTitle}>

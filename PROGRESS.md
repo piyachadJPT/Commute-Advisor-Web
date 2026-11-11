@@ -13,7 +13,7 @@
 | 3 Weather Integration | เสร็จ, commit แล้ว | ยืนยันกับ Supabase จริงแล้ว (ผู้ใช้ตรวจตาราง 2026-11-11) |
 | 4 Commute Engine | เสร็จ (เฉพาะโมดูลบริสุทธิ์), commit แล้ว | ยังไม่ต่อกับ DB/UI (Phase 5–6) |
 | 5 User Interface | **กำลังทำ** (Settings, Dashboard, Weather, History และ Onboarding ต่อข้อมูลจริงแล้ว ยังไม่ได้ลองในเบราว์เซอร์) | ยังไม่ทำ hero/icon/manifest/snapshot/design review |
-| 6 Scheduler, Push & PWA | **กำลังทำ** ชิ้น A (ตัวจัดตารางเวลาฝั่งเซิร์ฟเวอร์) เสร็จ ยังไม่ได้ commit | ชิ้น B (service worker, สมัครรับ push, รายการอุปกรณ์, iPhone) และชิ้น C (ออฟไลน์) ยังไม่ทำ |
+| 6 Scheduler, Push & PWA | **กำลังทำ** ชิ้น A และ B เสร็จ (B ยังไม่ commit) | ชิ้น C (แอปเปิดออฟไลน์ได้) ยังไม่ทำ และทุกอย่างของ Phase 6 ยังไม่เคยรันกับของจริง |
 | 7 Final Testing & Release | ยังไม่เริ่ม | |
 
 ## วิธีรันบนเครื่อง
@@ -226,6 +226,24 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - ผู้ใช้ที่ tick ประมวลผล = ตั้งตำแหน่งครบทั้งสองที่ (ไม่ดูธง onboarding ให้ตรงกับ guard)
 - ภาษาของข้อความแจ้งเตือน = `settings.locale` ถ้า null ใช้ไทย (ตอนนี้ `locale` ยังไม่ถูกบันทึกจากหน้า Settings จึงเป็นไทยเสมอจนกว่าจะทำ)
 - ไม่ตั้ง VAPID → tick ข้ามการแจ้งเตือนและนับเป็น `pushNotConfigured` ไม่ claim วัน
+
+**ชิ้น B เสร็จ: service worker, สมัครรับ push, รายการอุปกรณ์, iPhone** `typecheck`/`lint`/`build` ผ่าน เทสต์ 302 ข้อผ่านทั้งสอง timezone (เพิ่ม 27 ข้อ รวม 10 ข้อที่รัน `public/sw.js` กับ scope จำลอง) **ยังไม่เคยลองกับเบราว์เซอร์หรือ push service จริง**
+- `public/sw.js` (เขียนมือ ไม่มี build ต่างจากแผนที่ว่า `src/sw.ts`): `push` แสดงการแจ้งเตือนเสมอ แม้ข้อมูลว่าง/พัง/ผิดชนิด (iOS ยกเลิก subscription ของแอปที่รับ push แล้วไม่แสดงอะไร), `notificationclick` โฟกัสหน้าต่างที่เปิดอยู่หรือเปิด `/` และไม่เปิด origin อื่นเด็ดขาด, tag เดียวคือข้อความเช้าใหม่แทนอันเก่า `next.config.ts` ตั้ง header ไม่แคช `/sw.js` ลงทะเบียนจาก root layout (`ServiceWorkerRegister`)
+- Settings → การแจ้งเตือน: สวิตช์ที่เขียนเอง (`role="switch"`) ขอสิทธิ์ในตัวจัดการคลิกเป็นอย่างแรก (browser ต้องการ user gesture) แล้ว subscribe และบันทึกผ่าน Server Action `subscribePush` (ตรวจด้วย Zod และ allow-list host, user จาก session) ปิดสวิตช์ = ลบ subscription ของเครื่องนี้ `notifications_enabled` ตามว่ามีอุปกรณ์เหลืออยู่หรือไม่
+- เวลาแจ้งเตือน (ตัวเลือกเวลาของเรา) พร้อมข้อความ "แจ้งเตือนประมาณ 06:30–06:40", รายการอุปกรณ์ (ชื่อจาก user agent, วันที่เพิ่ม, ส่งสำเร็จล่าสุด, ปุ่มลบ), ปุ่ม "ส่งการแจ้งเตือนทดสอบ" (ส่งถึงอุปกรณ์ของผู้ใช้เองทันที ไว้ตรวจโดยไม่ต้องรอ 06:30)
+- กรณีพิเศษ: สิทธิ์ถูกปฏิเสธ → ข้อความบอกวิธีเปิดใหม่ (เว็บเปิดการตั้งค่าระบบให้ไม่ได้), iPhone/iPad ใน Safari แท็บ (ไม่มี PushManager) → ขั้นตอน Add to Home Screen แทนสวิตช์, เบราว์เซอร์ไม่รองรับ → บอกตรงๆ, เซิร์ฟเวอร์ยังไม่มีคีย์ VAPID → บอกว่ายังไม่ได้ตั้งค่า
+- Onboarding ขั้น 3 ใช้สวิตช์เดียวกัน (แบบไม่มีรายการอุปกรณ์) ปฏิเสธก็ไปต่อได้
+- เปลี่ยนภาษาที่หน้า Settings บันทึกลง `settings.locale` ด้วย (เดิมเป็น cookie อย่างเดียว) ข้อความแจ้งเตือนที่สร้างบนเซิร์ฟเวอร์จึงตามภาษาที่เลือก
+- `deliverToUser` ใช้ร่วมกันระหว่าง tick และปุ่มทดสอบ (ลบ subscription ที่หมดอายุ, นับความล้มเหลว; ความผิดพลาดตอนบันทึกผลไม่ทำให้ข้อความที่ส่งไปแล้วถูกนับว่าล้ม)
+
+**ยังไม่ทำ:** `pushsubscriptionchange` (ตอน push service หมุนคีย์เอง ผู้ใช้ต้องเปิดสวิตช์ใหม่ ตรงกับแผน §15 "Settings asks the user to re-enable"), นำภาษาจาก `settings.locale` ไปใช้ตอนเปิดบนเครื่องที่ไม่มี cookie
+
+**ตรวจด้วยมือบนอุปกรณ์จริง (§16.4 ของแผน) หลัง deploy**
+1. iPhone ติดตั้งลงหน้าจอโฮม: ล็อกอินด้วยรหัสในแอปที่ติดตั้ง, เปิดสวิตช์, กด "ส่งการแจ้งเตือนทดสอบ" ต้องขึ้น, แตะแล้วเปิด Dashboard
+2. iPhone ใน Safari แท็บ: ต้องเห็นขั้นตอน Add to Home Screen แทนสวิตช์
+3. Android Chrome และเบราว์เซอร์บนคอม: เปิดสวิตช์และได้รับข้อความทดสอบ
+4. รอเวลาแจ้งเตือนจริง ข้อความต้องมาในช่วง 06:30–06:40 และไม่มาซ้ำ
+5. หยุดงาน pg_cron เกิน 1 ชั่วโมง หน้า About ต้องขึ้นคำเตือน
 
 **ต้องทำก่อนใช้งานจริง (คุณทำ)**
 1. สร้างค่าลับ: `openssl rand -hex 32` สองครั้งสำหรับ `JOB_SECRET` กับ `CRON_SECRET`, `npx web-push generate-vapid-keys` สำหรับคีย์ VAPID ใส่ `.env.local` และ Vercel Environment Variables: `JOB_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (เช่น `mailto:อีเมลของคุณ`) ห้ามวางในแชต

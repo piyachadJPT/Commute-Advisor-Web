@@ -3,6 +3,9 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { updateLocalePreference } from "@/features/settings/data/settingsRepo";
+import { getUser } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { LOCALE_COOKIE, locales } from "./config";
 
 const schema = z.enum(locales);
@@ -17,5 +20,14 @@ export async function setLocale(formData: FormData): Promise<void> {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   });
+  // Also keep it on the account: the morning notification is built on the server, where the
+  // cookie does not exist (plan §10.1). Best effort; the cookie alone still switches the UI.
+  try {
+    const user = await getUser();
+    if (user)
+      await updateLocalePreference(await createClient(), user.id, parsed.data);
+  } catch {
+    // Not signed in, or the write failed: nothing to do.
+  }
   revalidatePath("/", "layout");
 }

@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { completeOnboarding } from "@/features/onboarding/actions";
+import { NotificationsSection } from "@/features/notifications/ui/notifications-section";
 import { OnboardingShell } from "@/features/onboarding/ui/onboarding-shell";
 import { getUserSettings } from "@/features/settings/data/settingsRepo";
 import { CommuteForm } from "@/features/settings/ui/commute-form";
 import { primaryButton, quietButton } from "@/features/settings/ui/styles";
 import { requireUser } from "@/lib/auth/session";
+import { pushEnv } from "@/lib/env.server";
 import { createClient } from "@/lib/supabase/server";
 
 export default function OnboardingPage({
@@ -116,12 +118,14 @@ async function OnboardingContent({
       <p className="mt-3 rounded-tile bg-fill-soft px-3.5 py-2.5 text-label font-medium">
         {t("notifications.example")}
       </p>
-      <p className="mt-3 text-caption text-ink-3">
-        {t("notifications.iphone")}
-      </p>
-      <p className="mt-3 text-caption text-ink-3">
-        {t("notifications.unavailable")}
-      </p>
+      <div className="mt-4">
+        <NotificationsSection
+          variant="onboarding"
+          vapidKey={pushEnv()?.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+          notificationTime={s.notificationTime}
+          devices={[]}
+        />
+      </div>
       <form action={completeOnboarding} className="mt-4">
         <button type="submit" className={`${primaryButton} w-full sm:w-auto`}>
           {t("finish")}

@@ -6,21 +6,14 @@ import {
   claimDay,
   finishLog,
 } from "@/features/notifications/data/notificationLogRepo";
-import {
-  deleteSubscriptions,
-  listSubscriptions,
-  recordFailure,
-  recordSuccess,
-} from "@/features/notifications/data/pushSubscriptionRepo";
+import { listSubscriptions } from "@/features/notifications/data/pushSubscriptionRepo";
 import {
   isNotificationDue,
   isPreNotificationRefresh,
 } from "@/features/notifications/domain/due";
 import { buildNotification } from "@/features/notifications/domain/payload";
-import {
-  sendToSubscriptions,
-  type SendFn,
-} from "@/features/notifications/sendPush";
+import { deliverToUser } from "@/features/notifications/deliver";
+import type { SendFn } from "@/features/notifications/sendPush";
 import { analyzeUser } from "@/features/recommendations/recommendationService";
 import {
   getUserSettings,
@@ -129,9 +122,9 @@ export async function runTick(input: {
       if (!(await claimDay(supabase, { userId, targetDate: today, kind })))
         continue; // already sent
 
-      let outcome: Awaited<ReturnType<typeof sendToSubscriptions>>;
+      let outcome: Awaited<ReturnType<typeof deliverToUser>>;
       try {
-        outcome = await sendToSubscriptions(subs, payload, send);
+        outcome = await deliverToUser(supabase, subs, payload, send, now);
       } catch (err) {
         await finishLog(supabase, {
           userId,
@@ -143,10 +136,6 @@ export async function runTick(input: {
         });
         throw err;
       }
-      await deleteSubscriptions(supabase, outcome.gone);
-      await recordSuccess(supabase, outcome.sent, now);
-      for (const f of outcome.failed)
-        await recordFailure(supabase, f.id, f.failureCount);
       await finishLog(supabase, {
         userId,
         targetDate: today,
