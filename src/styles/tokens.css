@@ -163,7 +163,6 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout */
-  --content-max: 77.5rem; /* 1240px */
   --rail-width: 5.25rem;
   --tabbar-space: 6.5rem;
 }

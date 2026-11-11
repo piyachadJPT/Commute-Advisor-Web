@@ -125,7 +125,7 @@ export async function DashboardView({
           }
         />
         <HourlyChartCard
-          className="lg:col-span-8"
+          className="lg:col-span-8 lg:self-stretch"
           home={view.hourly.home}
           work={view.hourly.work}
           threshold={view.threshold}
@@ -157,16 +157,20 @@ export async function DashboardView({
             },
           }}
         />
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-1 lg:gap-[1.125rem]">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-1 lg:grid-rows-2 lg:gap-[1.125rem] lg:self-stretch">
           <NowCard now={view.now[0]} />
           <NowCard now={view.now[1]} />
         </div>
         <NextDaysCard
-          className="lg:col-span-6"
+          className="lg:col-span-6 lg:self-stretch"
           days={view.nextDays}
           locale={locale}
         />
-        <WeekCard className="lg:col-span-6" week={view.week} locale={locale} />
+        <WeekCard
+          className="lg:col-span-6 lg:self-stretch"
+          week={view.week}
+          locale={locale}
+        />
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         className="fixed inset-0 -z-20 bg-(image:--sky-moto)"
       />
       <AppNav />
-      <main className="mx-auto w-full max-w-(--content-max) px-4 pb-[calc(var(--tabbar-space)+env(safe-area-inset-bottom))] sm:px-6 lg:pr-8 lg:pb-10 lg:pl-[calc(var(--rail-width)+3rem)]">
+      <main className="w-full px-4 pb-[calc(var(--tabbar-space)+env(safe-area-inset-bottom))] sm:px-6 lg:pr-8 lg:pb-10 lg:pl-[calc(var(--rail-width)+3rem)]">
         <Suspense fallback={<DashboardSkeleton />}>
           <OnboardingGate>{children}</OnboardingGate>
         </Suspense>

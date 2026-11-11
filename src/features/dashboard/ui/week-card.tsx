@@ -27,7 +27,7 @@ export async function WeekCard({
   return (
     <section
       aria-labelledby="week-title"
-      className={`rounded-card p-[1.125rem] glass ${className}`}
+      className={`flex flex-col rounded-card p-[1.125rem] glass ${className}`}
     >
       <h2 id="week-title" className="text-body font-semibold">
         {t("week.title")}
@@ -38,8 +38,8 @@ export async function WeekCard({
         </p>
       ) : null}
 
-      <DragScroll label={t("week.title")} className="mt-3.5 pb-1">
-        <ol className="grid auto-cols-[minmax(3.25rem,1fr)] grid-flow-col gap-2">
+      <DragScroll label={t("week.title")} className="mt-3.5 flex-1 pb-1">
+        <ol className="grid h-full auto-cols-[minmax(3.25rem,1fr)] grid-flow-col gap-2">
           {week.map((d) => {
             const vehicle = d.vehicle ?? "unknown";
             const style = VEHICLE_STYLE[vehicle];
@@ -60,7 +60,7 @@ export async function WeekCard({
                 key={d.date.toISOString()}
                 aria-current={d.kind === "today" ? "date" : undefined}
                 className={[
-                  "min-w-0 rounded-tile px-1 py-2.5 text-center",
+                  "flex min-w-0 flex-col items-center justify-center rounded-tile px-1 py-2.5 text-center",
                   d.kind === "future"
                     ? "border border-dashed border-divider"
                     : "bg-fill-soft",
@@ -81,7 +81,7 @@ export async function WeekCard({
                   label={label}
                   className={`mx-auto my-1.5 size-6 ${style.text}`}
                 />
-                <p className="truncate text-micro font-semibold tabular">
+                <p className="w-full truncate text-micro font-semibold tabular">
                   {caption}
                 </p>
               </li>

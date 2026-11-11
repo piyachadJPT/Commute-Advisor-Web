@@ -7,7 +7,7 @@ export function ShellSkeleton() {
         className="fixed inset-0 -z-20 bg-(image:--sky-moto)"
       />
       <div className="fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom))] h-16 rounded-[20px] glass lg:inset-x-auto lg:top-4 lg:bottom-4 lg:left-4 lg:h-auto lg:w-(--rail-width) lg:rounded-card" />
-      <div className="mx-auto w-full max-w-(--content-max) px-4 sm:px-6 lg:pr-8 lg:pl-[calc(var(--rail-width)+3rem)]">
+      <div className="w-full px-4 sm:px-6 lg:pr-8 lg:pl-[calc(var(--rail-width)+3rem)]">
         <DashboardSkeleton />
       </div>
     </div>

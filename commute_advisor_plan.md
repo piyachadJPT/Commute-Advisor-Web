@@ -679,7 +679,7 @@ Skipping step 1 leaves the Dashboard on the fallback CTA.
 |---|---|
 | < 640 px | Single column: hero, trips card, chart card (horizontally scrollable chart), the two location cards, next days, this week. Floating glass tab bar at the bottom |
 | 640–1023 px | Single column with a wider max width; the two location cards sit side by side. Floating glass tab bar |
-| ≥ 1024 px | Floating glass rail on the left. A 12-column grid, max width 1240 px: row 1 hero (7) + trips card (5); row 2 hourly chart (8) + the two location cards stacked (4); row 3 next commute days (6) + this week (6). The screen is filled with useful data, not a stretched phone column |
+| ≥ 1024 px | Floating glass rail on the left. A 12-column grid that fills the whole width beside the rail (no max width; changed from 1240 px at the owner's request, 2026-11-11): row 1 hero (7) + trips card (5); row 2 hourly chart (8) + the two location cards stacked (4); row 3 next commute days (6) + this week (6). The screen is filled with useful data, not a stretched phone column |
 
 ## 12. Visual Identity & Anti-Generic Design Rules
 
