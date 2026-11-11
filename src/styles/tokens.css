@@ -1,0 +1,167 @@
+/*
+ * Commute Advisor design tokens — "Sky ambient" (plan §12).
+ * The sky backdrop follows the verdict; data sits on frosted-glass cards.
+ * Components never hard-code values; Tailwind reads these through @theme in globals.css.
+ *
+ * Contrast (WCAG 2.2 AA) is checked against the glass colour composited over the
+ * darkest sky stop: every text token ≥ 4.5:1 in both themes. Hero inks are checked
+ * against the sky stops behind the hero.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Text on glass */
+  --ink: #0d2236;
+  --ink-2: #2c4258;
+  --ink-3: #40566b;
+
+  /* Glass */
+  --glass: rgb(255 255 255 / 0.8);
+  --glass-strong: rgb(255 255 255 / 0.92);
+  --glass-solid: #f1f5f9;
+  --glass-line: rgb(255 255 255 / 0.65);
+  --glass-shadow: 0 10px 40px rgb(16 38 64 / 0.14);
+  --divider: rgb(13 34 54 / 0.12);
+  --fill-soft: rgb(13 34 54 / 0.06);
+
+  --primary: #155c9b;
+  --primary-ink: #ffffff;
+  --focus: #155c9b;
+
+  /* Verdict colours (distinct from risk so "car" never reads as danger) */
+  --car: #1d4f86;
+  --moto: #0b6c5e;
+
+  /* Risk: green → amber → orange → red */
+  --risk-very-low: #256c4c;
+  --risk-low: #785a10;
+  --risk-high: #9b4717;
+  --risk-very-high: #af312a;
+  --risk-unknown: #54616d;
+  /* Fills for bars and meters (graphics, ≥ 3:1 on glass); brighter than the text tones */
+  --risk-very-low-fill: #2f8a62;
+  --risk-low-fill: #9a7419;
+  --risk-high-fill: #c25f22;
+  --risk-very-high-fill: #c03a32;
+  --risk-unknown-fill: #6b7a88;
+
+  /* Banners */
+  --warn-surface: #f7e2a8;
+  --warn-ink: #4a3504;
+
+  /* Skies (one per verdict) and the ink used directly on them */
+  --sky-car: linear-gradient(175deg, #3b5470 0%, #5d7895 42%, #9fb3c6 100%);
+  --sky-moto: linear-gradient(175deg, #4f9fdc 0%, #94c8ef 48%, #f2dcc2 100%);
+  --sky-mist: linear-gradient(175deg, #7c8b9b 0%, #aab6c2 50%, #d7dde3 100%);
+  --sky-fallback: #5d7895;
+  --rain-streak: rgb(255 255 255 / 0.09);
+
+  --hero-car: #ffffff;
+  --hero-car-2: #ffffff;
+  --hero-moto: #0b2033;
+  --hero-moto-2: #13304a;
+  --hero-mist: #0c1a27;
+  --hero-mist-2: #0c1a27;
+  --hero-chip: rgb(255 255 255 / 0.22);
+  --hero-chip-light: rgb(255 255 255 / 0.5);
+
+  --scene-cloud: rgb(255 255 255 / 0.94);
+  --scene-cloud-back: rgb(255 255 255 / 0.55);
+  --scene-rain: rgb(196 228 255 / 0.95);
+  --scene-sun: #ffd77a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #eaf1f8;
+    --ink-2: #c3d1de;
+    --ink-3: #a3b4c4;
+
+    --glass: rgb(16 28 44 / 0.6);
+    --glass-strong: rgb(36 54 76 / 0.9);
+    --glass-solid: #142132;
+    --glass-line: rgb(255 255 255 / 0.09);
+    --glass-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+    --divider: rgb(255 255 255 / 0.11);
+    --fill-soft: rgb(255 255 255 / 0.07);
+
+    --primary: #8cc4f2;
+    --primary-ink: #06131e;
+    --focus: #8cc4f2;
+
+    --car: #8cbcf2;
+    --moto: #6fd6c3;
+
+    --risk-very-low: #6fcd9f;
+    --risk-low: #e7c25e;
+    --risk-high: #f19a63;
+    --risk-very-high: #f3867d;
+    --risk-unknown: #a3b0bc;
+    --risk-very-low-fill: #6fcd9f;
+    --risk-low-fill: #e7c25e;
+    --risk-high-fill: #f19a63;
+    --risk-very-high-fill: #f3867d;
+    --risk-unknown-fill: #a3b0bc;
+
+    --warn-surface: #e9c96e;
+    --warn-ink: #2f2202;
+
+    --sky-car: linear-gradient(175deg, #0a121c 0%, #142233 50%, #22354a 100%);
+    --sky-moto: linear-gradient(175deg, #081a33 0%, #17345e 55%, #3d5a7e 100%);
+    --sky-mist: linear-gradient(175deg, #0f141b 0%, #1d252f 55%, #2c3540 100%);
+    --sky-fallback: #142233;
+    --rain-streak: rgb(255 255 255 / 0.05);
+
+    --hero-car: #eef4fa;
+    --hero-car-2: #b8c7d6;
+    --hero-moto: #eef4fa;
+    --hero-moto-2: #c3d3e4;
+    --hero-mist: #e6ecf2;
+    --hero-mist-2: #b4bfca;
+    --hero-chip: rgb(255 255 255 / 0.12);
+    --hero-chip-light: rgb(255 255 255 / 0.12);
+
+    --scene-cloud: rgb(226 236 246 / 0.9);
+    --scene-cloud-back: rgb(226 236 246 / 0.4);
+    --scene-rain: rgb(140 196 242 / 0.95);
+    --scene-sun: #f5c86a;
+  }
+}
+
+:root {
+  /* Type scale (rem; Thai needs generous line height).
+     Display is capped by viewport width so a single Thai word never splits at 200% text size. */
+  --text-display: min(clamp(2.5rem, 1.6rem + 4vw, 4.25rem), 11.5vw);
+  --leading-display: 1.25;
+  --text-numeral: clamp(2.6rem, 2rem + 2.4vw, 3.4rem);
+  --leading-numeral: 1.1;
+  --text-temp: 2rem;
+  --leading-temp: 1.1;
+  --text-title: 1.0625rem;
+  --leading-title: 1.5;
+  --text-body: 1rem;
+  --leading-body: 1.6;
+  --text-label: 0.875rem;
+  --leading-label: 1.5;
+  --text-caption: 0.8125rem;
+  --leading-caption: 1.5;
+  --text-micro: 0.75rem;
+  --leading-micro: 1.45;
+
+  /* Radius by role */
+  --radius-chip: 999px;
+  --radius-control: 12px;
+  --radius-tile: 14px;
+  --radius-card: 22px;
+
+  /* Motion */
+  --duration-fast: 160ms;
+  --duration-sky: 600ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --content-max: 77.5rem; /* 1240px */
+  --rail-width: 5.25rem;
+  --tabbar-space: 6.5rem;
+}

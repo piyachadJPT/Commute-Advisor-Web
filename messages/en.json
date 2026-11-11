@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "title": "Commute Advisor",
+    "description": "Car or motorcycle today, based on the chance of rain during your commute"
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Today",
+    "weather": "Weather",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "chip": {
+      "car": "Recommended",
+      "motorcycle": "Recommended",
+      "unknown": "No recommendation yet"
+    },
+    "route": "{home} → {work}",
+    "tomorrow": "Tomorrow",
+    "refresh": "Refresh forecast",
+    "verdict": {
+      "car": "Take the car",
+      "motorcycle": "Ride the motorcycle",
+      "unknown": "No call yet"
+    },
+    "reason": {
+      "departureHigh": "<b>{risk}%</b> chance of rain on the way in, at {source} ({window})",
+      "returnHigh": "<b>{risk}%</b> chance of rain on the way home, at {source} ({window})",
+      "bothLow": "Both trips below the {threshold}% threshold · highest <b>{max}%</b>",
+      "incomplete": "No rain probability yet for the {trip} trip at {source} ({hours})"
+    },
+    "trips": "Outbound and return",
+    "trip": {
+      "departure": "Outbound",
+      "return": "Return",
+      "rain": "{mm} mm",
+      "rainUnknown": "Rainfall unknown",
+      "source": "Highest at {source}",
+      "missing": "Missing {hours}"
+    },
+    "location": {
+      "home": "home",
+      "work": "work"
+    },
+    "place": {
+      "home": "Home",
+      "work": "Work"
+    },
+    "risk": {
+      "veryLow": "Very low",
+      "low": "Low to moderate",
+      "high": "High",
+      "veryHigh": "Very high",
+      "unknown": "No data"
+    },
+    "updated": "Updated {time}",
+    "skipToday": "Skip today",
+    "stale": "Data from {time} yesterday · tap to update",
+    "chart": {
+      "title": "Hourly chance of rain",
+      "subtitle": "Today · blue bands are your trips · dashed line is the {threshold}% threshold",
+      "threshold": "Threshold {threshold}%",
+      "series": {
+        "label": "Location",
+        "max": "Highest",
+        "home": "Home",
+        "work": "Work"
+      },
+      "summary": "Chance of rain, {series}: highest {dep} percent outbound, {ret} percent on the return, threshold {threshold} percent",
+      "noData": "no data"
+    },
+    "now": {
+      "note": "Forecast for this hour",
+      "rain": "Rain",
+      "humidity": "Humidity",
+      "wind": "Wind",
+      "windValue": "{speed} km/h"
+    },
+    "wmo": {
+      "clear": "Clear sky",
+      "partlyCloudy": "Partly cloudy",
+      "overcast": "Overcast",
+      "fog": "Fog",
+      "drizzle": "Drizzle",
+      "rain": "Rain",
+      "showers": "Showers",
+      "thunder": "Thunderstorm"
+    },
+    "nextDays": {
+      "title": "Next commute days",
+      "subtitle": "3-day forecast",
+      "risks": "{dep}% · {ret}%",
+      "risksLabel": "Outbound {dep}%, return {ret}%",
+      "beyond": "No forecast yet",
+      "beyondNote": "Beyond 3 days"
+    },
+    "week": {
+      "title": "This week",
+      "today": "Today",
+      "short": {
+        "car": "Car",
+        "motorcycle": "Moto",
+        "unknown": "Unknown"
+      },
+      "tally": {
+        "car": "Car",
+        "motorcycle": "Motorcycle",
+        "pending": "Pending"
+      },
+      "forecast": "Forecast {risk}%"
+    }
+  },
+  "placeholder": {
+    "weather": "Hourly forecast for home and work",
+    "history": "Monthly recommendation history",
+    "settings": "Locations, commute times, rain threshold and notifications",
+    "comingIn": "This screen is built in Phase 5"
+  },
+  "settings": {
+    "language": "Language",
+    "languageTh": "ไทย",
+    "languageEn": "English"
+  }
+}

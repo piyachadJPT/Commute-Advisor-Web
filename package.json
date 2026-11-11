@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

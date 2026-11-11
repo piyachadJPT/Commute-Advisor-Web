@@ -5,7 +5,7 @@
 > Hosting: Vercel (Hobby)
 > Backend & database: Supabase (Postgres, Auth, pg_cron) — Free plan
 > Weather provider: Open-Meteo (free API)
-> Last updated: 2026-11-11
+> Last updated: 2026-11-11 (visual direction changed to "Sky ambient")
 
 ### Changes from 1.1
 
@@ -569,23 +569,26 @@ URLs carry no locale prefix. The locale comes from `settings.locale`, then from 
 
 ### 11.2 Dashboard (`/`)
 
-The structure, top to bottom:
+The page sits on a full-screen **sky backdrop** whose colour follows the verdict (§12.1). Content is laid out top to bottom on mobile and as a 12-column grid on desktop (§11.12):
 
-1. **Header**: target date (e.g. "พุธ 4 พ.ย. 2569", or "พรุ่งนี้ · พฤหัส 5 พ.ย." when the target is not today) and a refresh affordance (a refresh button, plus pull-to-refresh in the installed PWA where the browser's own reload gesture is absent).
+1. **Header** (on the sky): target date (e.g. "พุธ 11 พ.ย. 2569", or "พรุ่งนี้ · พฤหัส 5 พ.ย." when the target is not today), the route "ลาดพร้าว → สีลม", and a frosted refresh button (plus pull-to-refresh in the installed PWA).
 2. **Status banner** (conditional, §11.4).
-3. **Hero card**: Lottie illustration (car / motorcycle / unknown), the verdict in large type ("เอารถยนต์ไป"), and a one-line reason ("ขากลับเสี่ยงฝน 70% ที่ทำงาน").
-4. **Two trip cards** side by side, departure and return. Each shows the time window, the risk %, the risk label, the precipitation in mm, and which location drove the risk.
-5. **Footer row**: "อัปเดต 06:12" plus a "ข้ามวันนี้" (skip today) action, with an undo snackbar.
+3. **Hero** (directly on the sky, no card): a small verdict chip with the vehicle icon, the verdict in large type ("เอารถยนต์ไป"), a one-line reason ("ขากลับเสี่ยงฝน 70% ที่ทำงาน"), and a weather scene illustration (rain cloud / sun and cloud / mist).
+4. **Trips card** (glass): departure and return side by side, separated by a dashed divider. Each shows the time window, risk % in large tabular figures, a meter with the threshold tick, the risk label with icon, precipitation in mm, and which location drove the risk. The card footer holds "อัปเดต 06:12" and the "ข้ามวันนี้" (skip today) action, with an undo snackbar.
+5. **Hourly chart card** (glass): today's hourly rain probability with a segmented control สูงสุด / บ้าน / ที่ทำงาน, commute-window bands and the threshold line. On narrow screens the chart scrolls horizontally instead of shrinking its text.
+6. **Now at each location** (two glass cards): temperature, condition, rain %, humidity and wind for บ้าน and ที่ทำงาน, taken from the stored hourly forecast nearest to now (no extra API call), labelled as forecast values.
+7. **Next commute days** (glass): the next commute days within the 3-day forecast, each with its vehicle and both trip risks. A day beyond the horizon shows "ยังไม่มีพยากรณ์".
+8. **This week** (glass): Mon–Fri cells showing the locked vehicle for past days, today highlighted, and the forecast max risk for future days, plus car / motorcycle / pending counts.
 
 Hero states:
 
 | State | Hero |
 |---|---|
-| Car | Car animation, car color treatment |
-| Motorcycle | Motorcycle animation, motorcycle color treatment |
-| Unknown | Static "?" mark in neutral grey, with text explaining what is missing |
-| Locked + return warning | Verdict unchanged; inline warning strip under the return card |
-| Skipped day | Calm empty state "วันนี้ข้ามแล้ว", with a button to undo, and a preview of the next commute day |
+| Car | Rain-cloud scene; overcast sky with fine rain streaks |
+| Motorcycle | Sun-and-cloud scene; clear morning sky |
+| Unknown | Mist scene in neutral grey sky, with text explaining what is missing |
+| Locked + return warning | Verdict unchanged; inline warning strip in the trips card |
+| Skipped day | Calm state "วันนี้ข้ามแล้ว", with a button to undo, and a preview of the next commute day |
 | No locations yet | Not reachable (onboarding), but render a fallback CTA to Settings |
 
 ### 11.3 Weather screen (`/weather`)
@@ -674,53 +677,54 @@ Skipping step 1 leaves the Dashboard on the fallback CTA.
 
 | Width | Layout |
 |---|---|
-| < 640 px | Single column. Hero, then the two trip stubs joined by the perforated divider, then the footer. Bottom tab bar |
-| 640–1023 px | Single column with a wider max width. The trip stubs gain room for the precipitation detail. Bottom tab bar |
-| ≥ 1024 px | Left rail. The Dashboard shows the Hero and trip stubs on the left, and today's rain-gauge chart on the right, so the departure-board feel comes from the layout and not a stretched phone screen. Max content width 1120 px |
+| < 640 px | Single column: hero, trips card, chart card (horizontally scrollable chart), the two location cards, next days, this week. Floating glass tab bar at the bottom |
+| 640–1023 px | Single column with a wider max width; the two location cards sit side by side. Floating glass tab bar |
+| ≥ 1024 px | Floating glass rail on the left. A 12-column grid, max width 1240 px: row 1 hero (7) + trips card (5); row 2 hourly chart (8) + the two location cards stacked (4); row 3 next commute days (6) + this week (6). The screen is filled with useful data, not a stretched phone column |
 
 ## 12. Visual Identity & Anti-Generic Design Rules
 
 > **Requirement:** The UI must not look templated, repetitive, or recognisably AI-generated. This section is **binding**. Treat a violation as a defect, not a style preference.
 
-### 12.1 Design concept: "Morning departure board"
+### 12.1 Design concept: "Sky ambient"
 
-The app's single job is to give one decision at 06:30. The visual language takes its cue from **transit departure boards and weather instruments**. It should be typographic, confident and information-dense, not decorative.
+The app gives one decision each morning. The visual language is a **living sky**: the whole background reflects today's verdict, and the data sits on frosted-glass cards above it. It should feel calm, modern and immediately readable.
 
-- The verdict reads like a board announcement: big, tight, and type-led.
-- Trip cards borrow from **ticket stubs**. A departure stub and a return stub are joined by a perforated divider, so the two trips read as one journey and not as two random cards.
-- Numbers are the protagonists. Show risk % in large tabular figures and give them more visual weight than the icons.
-- Rain data gets a **rain-gauge** feel: vertical bars, fine tick marks and a threshold line, instead of generic rounded chart bars.
+- The sky backdrop changes with the verdict: overcast slate with fine rain streaks for car, a clear morning sky warming toward the horizon for motorcycle, and a misty grey for unknown. Dark mode uses night-sky equivalents.
+- The hero sits directly on the sky, not in a card: chip, very large verdict, reason, and a weather scene illustration.
+- Data lives on **frosted-glass cards** (translucent surface, background blur, hairline light border, soft shadow).
+- Numbers are the protagonists: risk % in large tabular figures.
+- The two trips stay together in one card with a dashed divider, so they read as one journey.
 
-The concept must be validated in Phase 1 with a single static Dashboard mockup (light and dark) before building the other screens (§18).
+The concept was approved from an HTML preview on 2026-11-11 (supersedes the "morning departure board" concept).
 
 ### 12.2 Do not ship (anti-patterns)
 
 | Anti-pattern | Why it reads as generic/AI | Instead |
 |---|---|---|
-| Default Tailwind palette, an unmodified shadcn/ui theme, or Material purple | Instantly recognisable template | Hand-tuned palette (§12.3) |
-| Every section in an identical rounded card with the same shadow | "Card soup", no hierarchy | Vary containers: hero = full-bleed band, trips = ticket stubs, lists = plain rows with dividers |
-| Purple-to-blue gradients, glow blobs, glassmorphism everywhere | AI landing-page cliché | Flat surfaces. Use texture/pattern only where it carries meaning (e.g. a subtle rain-line pattern on rainy states) |
-| Emoji as icons (🚗🏍☔) | Low-craft placeholder look | Material Symbols, tuned to one consistent stroke weight |
-| Centered everything, with equal spacing between all items | No rhythm | Left-aligned type, a deliberate spacing scale with contrasting gaps |
-| Stock Lottie used as-is in mismatched styles | Clip-art feel | One coherent set, **recolored to the palette** and matched in line weight. Replace any file that clashes |
+| Default Tailwind palette, an unmodified shadcn/ui theme, or Material purple | Instantly recognisable template | Hand-tuned sky and risk palette (§12.3) |
+| Decorative gradients with no meaning (purple-to-blue, glow blobs) | AI landing-page cliché | The only gradient is the sky backdrop, and it encodes the verdict. No purple, no glow blobs |
+| Glass on everything, including text on low-contrast glass | Unreadable, trendy for its own sake | Glass only for data cards and navigation; every text pair meets AA on the composited card colour; solid fallback when `backdrop-filter` is unsupported or reduced transparency is requested |
+| Emoji as icons | Low-craft placeholder look | Material Symbols, one weight |
+| Centered everything, equal spacing everywhere | No rhythm | Left-aligned type, a deliberate spacing scale with contrasting gaps |
+| Stock illustrations in mismatched styles | Clip-art feel | One coherent set of weather scenes in the palette |
 | Generic copy ("Stay safe!", "Have a great day! ☀️") | Chatbot voice | Specific, data-bearing copy (§11.8) |
-| Spinner-only loading screens | Unfinished feel | Layout-matching skeletons |
-| Every icon in a tinted circle | Template tic | Icons sit inline with text; use a container only when it means something |
-| Uniform 16 px radius on everything | Template tic | Radius scale by role, e.g. 4 for chips, 12 for stubs, 0 for full-bleed bands |
-| Desktop as a stretched phone column, or a generic SaaS sidebar dashboard | Template tic | A deliberate wide layout (§11.12) with a departure-board header, and the hero and chart side by side |
+| Spinner-only loading screens | Unfinished feel | Layout-matching glass skeletons |
+| Every icon in a tinted circle | Template tic | Icons sit inline with text; tinted badges only where they encode the vehicle |
+| Desktop as a stretched phone column | Empty, unfinished | The 12-column grid in §11.12 |
 
 ### 12.3 Color
 
-- Seed: sky blue. Derive the scheme, then **manually adjust** the primary, surface and surface-container tones so that the light theme reads like a morning sky and the dark theme reads like a pre-dawn sky, not neutral grey.
-- Risk colors are a custom, slightly desaturated green → amber → orange → red that harmonises with the blue, not pure traffic-light values. Unknown is a cool grey.
-- The verdict colors (car vs motorcycle) are distinct from the risk colors, so that "car" is not read as "danger".
+- Sky backdrops: one gradient per verdict state (car, motorcycle, unknown) per theme. Text placed directly on the sky uses a per-state "hero ink" that meets AA against the darkest part of the sky behind it.
+- Glass cards: a translucent surface (light: white at about 70%, dark: deep navy at about 60%) with blur. Contrast is checked against the card colour composited over the darkest sky.
+- Risk colors: custom green → amber → orange → red, tuned for both glass surfaces. Unknown is a cool grey.
+- Verdict colors (car blue, motorcycle teal) are distinct from the risk colors, so "car" is not read as "danger".
 - Every token is defined for both themes and contrast-checked.
 
 ### 12.4 Typography
 
-- IBM Plex Sans Thai with a clear scale. Suggested roles: Display (verdict), Headline (dates), Title (card headings), Body, Label, plus a numeric style with tabular figures.
-- Use weight contrast deliberately (e.g. SemiBold verdict against Regular body) instead of relying on size alone.
-- Tune Thai line height separately so that tone marks and vowels are not clipped.
+- IBM Plex Sans Thai. Roles: Display (verdict), Title (card headings), Body, Label, Caption, plus a numeric style with tabular figures.
+- Use weight contrast deliberately (Bold verdict, SemiBold numbers, Regular body).
+- Tune Thai line height separately so that tone marks and vowels are not clipped. A single Thai word in the verdict must never break across lines.
 
 ### 12.5 Design review gate
 
@@ -729,8 +733,8 @@ Before Phase 5 is closed, check every screen in light, dark, Thai, English, and 
 - [ ] Could this screen be mistaken for a generic template or AI demo? (If yes → redesign.)
 - [ ] Is there one clear focal point, with a deliberate secondary hierarchy?
 - [ ] Do the containers vary by role, rather than repeating one card style?
-- [ ] Are there no emoji in the UI, no gradient blobs, and no default purple?
-- [ ] Do the Lottie assets match each other and the palette?
+- [ ] Are there no emoji in the UI, no decorative gradients beyond the sky backdrop, and no default purple?
+- [ ] Do the hero scenes match each other and the palette, and is every glass text pair AA?
 - [ ] Is every string specific and data-bearing?
 - [ ] Do the abnormal states (§11.4) look designed, not like afterthoughts?
 
@@ -1132,10 +1136,10 @@ An ESLint `no-restricted-imports` rule enforces that `src/features/commute` impo
 | 13 | Location input | Place search + current location + manual coordinates; stored rounded to ~100 m | Kept, rounding added |
 | 14 | Platform | Next.js web app / PWA on Vercel | **Changed** (was Flutter iOS) |
 | 15 | Language | Thai + English | Kept |
-| 16 | Design system | Custom token system on Tailwind v4, sky-blue palette, system light/dark | **Changed** (was Material 3) |
-| 17 | Dashboard layout | Hero + two trip cards (ticket stubs) | Kept |
+| 16 | Design system | Custom token system on Tailwind v4: sky backdrops per verdict, frosted-glass cards, system light/dark | **Changed** (was Material 3; "departure board" concept replaced 2026-11-11) |
+| 17 | Dashboard layout | Hero on the sky + trips card + hourly chart + now at each location + next days + this week; 12-column grid on desktop | **Changed** 2026-11-11 |
 | 18 | Navigation | Bottom nav with 4 tabs on mobile; left rail on desktop | Extended |
-| 19 | Icons | Lottie in Hero only (recolored); Material Symbols elsewhere | Kept |
+| 19 | Icons | Weather scene illustrations in the Hero (SVG; Lottie optional later); Material Symbols elsewhere | Changed |
 | 20 | Risk colors | Custom green → amber → orange → red; grey unknown | Kept |
 | 21 | Font | IBM Plex Sans Thai, self-hosted through `next/font` | Kept |
 | 22 | Weather screen | Bar chart + hourly list, home/work switch | Kept |

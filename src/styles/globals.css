@@ -1,0 +1,163 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Expose tokens to Tailwind. The default palette, radii, shadows and font sizes are
+ * cleared so only project tokens can be used (plan §12.2).
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-line: var(--glass-line);
+  --color-divider: var(--divider);
+  --color-fill-soft: var(--fill-soft);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-focus: var(--focus);
+  --color-car: var(--car);
+  --color-moto: var(--moto);
+  --color-risk-very-low: var(--risk-very-low);
+  --color-risk-low: var(--risk-low);
+  --color-risk-high: var(--risk-high);
+  --color-risk-very-high: var(--risk-very-high);
+  --color-risk-unknown: var(--risk-unknown);
+  --color-risk-very-low-fill: var(--risk-very-low-fill);
+  --color-risk-low-fill: var(--risk-low-fill);
+  --color-risk-high-fill: var(--risk-high-fill);
+  --color-risk-very-high-fill: var(--risk-very-high-fill);
+  --color-risk-unknown-fill: var(--risk-unknown-fill);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-ink: var(--warn-ink);
+  --color-hero: var(--hero-ink);
+  --color-hero-2: var(--hero-ink-2);
+  --color-scene-cloud: var(--scene-cloud);
+  --color-scene-cloud-back: var(--scene-cloud-back);
+  --color-scene-rain: var(--scene-rain);
+  --color-scene-sun: var(--scene-sun);
+
+  --font-*: initial;
+  --font-sans:
+    var(--font-plex), "Sukhumvit Set", "Thonburi", system-ui, sans-serif;
+
+  --text-*: initial;
+  --text-display: var(--text-display);
+  --text-display--line-height: var(--leading-display);
+  --text-numeral: var(--text-numeral);
+  --text-numeral--line-height: var(--leading-numeral);
+  --text-temp: var(--text-temp);
+  --text-temp--line-height: var(--leading-temp);
+  --text-title: var(--text-title);
+  --text-title--line-height: var(--leading-title);
+  --text-body: var(--text-body);
+  --text-body--line-height: var(--leading-body);
+  --text-label: var(--text-label);
+  --text-label--line-height: var(--leading-label);
+  --text-caption: var(--text-caption);
+  --text-caption--line-height: var(--leading-caption);
+  --text-micro: var(--text-micro);
+  --text-micro--line-height: var(--leading-micro);
+
+  --radius-*: initial;
+  --radius-none: 0;
+  --radius-chip: var(--radius-chip);
+  --radius-control: var(--radius-control);
+  --radius-tile: var(--radius-tile);
+  --radius-card: var(--radius-card);
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-glass: var(--glass-shadow);
+
+  --ease-standard: var(--ease-standard);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--sky-fallback);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Per-verdict sky ink, set on the page root with data-sky (plan §12.1, §12.3) */
+@layer base {
+  :root,
+  [data-sky="moto"] {
+    --hero-ink: var(--hero-moto);
+    --hero-ink-2: var(--hero-moto-2);
+    --hero-chip-bg: var(--hero-chip-light);
+  }
+  [data-sky="car"] {
+    --hero-ink: var(--hero-car);
+    --hero-ink-2: var(--hero-car-2);
+    --hero-chip-bg: var(--hero-chip);
+  }
+  [data-sky="mist"] {
+    --hero-ink: var(--hero-mist);
+    --hero-ink-2: var(--hero-mist-2);
+    --hero-chip-bg: var(--hero-chip-light);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Frosted glass: translucent surface + blur. Solid where blur is unsupported or
+   reduced transparency is requested, so text contrast never depends on the blur. */
+@utility glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+
+  @supports not (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+  ) {
+    background: var(--glass-solid);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--glass-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Fine rain streaks over the sky, only on rainy (car) days */
+@utility rain-streaks {
+  background-image: repeating-linear-gradient(
+    104deg,
+    transparent 0 22px,
+    var(--rain-streak) 22px 23px
+  );
+}

@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "title": "คำแนะนำการเดินทาง",
+    "description": "แนะนำว่าวันนี้ควรใช้รถยนต์หรือมอเตอร์ไซค์ จากโอกาสฝนช่วงเดินทาง"
+  },
+  "nav": {
+    "label": "เมนูหลัก",
+    "home": "หน้าหลัก",
+    "weather": "อากาศ",
+    "history": "ประวัติ",
+    "settings": "ตั้งค่า"
+  },
+  "dashboard": {
+    "chip": {
+      "car": "แนะนำ",
+      "motorcycle": "แนะนำ",
+      "unknown": "ยังไม่มีคำแนะนำ"
+    },
+    "route": "{home} → {work}",
+    "tomorrow": "พรุ่งนี้",
+    "refresh": "อัปเดตพยากรณ์",
+    "verdict": {
+      "car": "เอารถยนต์ไป",
+      "motorcycle": "ขี่มอเตอร์ไซค์",
+      "unknown": "ยังตัดสินไม่ได้"
+    },
+    "reason": {
+      "departureHigh": "ขาไปเสี่ยงฝน <b>{risk}%</b> {source} ({window})",
+      "returnHigh": "ขากลับเสี่ยงฝน <b>{risk}%</b> {source} ({window})",
+      "bothLow": "โอกาสฝนทั้งสองขาต่ำกว่าเกณฑ์ {threshold}% · สูงสุด <b>{max}%</b>",
+      "incomplete": "ยังไม่มีข้อมูลโอกาสฝนช่วง{trip}{source} ({hours})"
+    },
+    "trips": "ขาไปและขากลับ",
+    "trip": {
+      "departure": "ขาไป",
+      "return": "ขากลับ",
+      "rain": "{mm} มม.",
+      "rainUnknown": "ไม่ทราบปริมาณฝน",
+      "source": "สูงสุด{source}",
+      "missing": "ขาดข้อมูล {hours}"
+    },
+    "location": {
+      "home": "ที่บ้าน",
+      "work": "ที่ทำงาน"
+    },
+    "place": {
+      "home": "บ้าน",
+      "work": "ที่ทำงาน"
+    },
+    "risk": {
+      "veryLow": "ต่ำมาก",
+      "low": "ต่ำถึงปานกลาง",
+      "high": "สูง",
+      "veryHigh": "สูงมาก",
+      "unknown": "ไม่มีข้อมูล"
+    },
+    "updated": "อัปเดต {time}",
+    "skipToday": "ข้ามวันนี้",
+    "stale": "ข้อมูลเมื่อ {time} เมื่อวาน · แตะเพื่ออัปเดต",
+    "chart": {
+      "title": "โอกาสฝนรายชั่วโมง",
+      "subtitle": "วันนี้ · แถบฟ้าคือช่วงเดินทาง · เส้นประคือเกณฑ์ {threshold}%",
+      "threshold": "เกณฑ์ {threshold}%",
+      "series": {
+        "label": "ตำแหน่ง",
+        "max": "สูงสุด",
+        "home": "บ้าน",
+        "work": "ที่ทำงาน"
+      },
+      "summary": "โอกาสฝน{series} ช่วงขาไปสูงสุด {dep} เปอร์เซ็นต์ ช่วงขากลับสูงสุด {ret} เปอร์เซ็นต์ เกณฑ์ {threshold} เปอร์เซ็นต์",
+      "noData": "ไม่มีข้อมูล"
+    },
+    "now": {
+      "note": "พยากรณ์ชั่วโมงนี้",
+      "rain": "ฝน",
+      "humidity": "ชื้น",
+      "wind": "ลม",
+      "windValue": "{speed} กม./ชม."
+    },
+    "wmo": {
+      "clear": "ท้องฟ้าแจ่มใส",
+      "partlyCloudy": "มีเมฆบางส่วน",
+      "overcast": "เมฆมาก",
+      "fog": "มีหมอก",
+      "drizzle": "ฝนปรอย",
+      "rain": "ฝนตก",
+      "showers": "ฝนเป็นช่วง",
+      "thunder": "พายุฝนฟ้าคะนอง"
+    },
+    "nextDays": {
+      "title": "วันเดินทางถัดไป",
+      "subtitle": "พยากรณ์ล่วงหน้า 3 วัน",
+      "risks": "{dep}% · {ret}%",
+      "risksLabel": "ขาไป {dep}% ขากลับ {ret}%",
+      "beyond": "ยังไม่มีพยากรณ์",
+      "beyondNote": "เกิน 3 วัน"
+    },
+    "week": {
+      "title": "สัปดาห์นี้",
+      "today": "วันนี้",
+      "short": {
+        "car": "รถยนต์",
+        "motorcycle": "มอไซค์",
+        "unknown": "ไม่ทราบ"
+      },
+      "tally": {
+        "car": "รถยนต์",
+        "motorcycle": "มอเตอร์ไซค์",
+        "pending": "รอพยากรณ์"
+      },
+      "forecast": "พยากรณ์ {risk}%"
+    }
+  },
+  "placeholder": {
+    "weather": "พยากรณ์รายชั่วโมงของบ้านและที่ทำงาน",
+    "history": "ประวัติคำแนะนำรายเดือน",
+    "settings": "ตำแหน่ง เวลาเดินทาง เกณฑ์ฝน และการแจ้งเตือน",
+    "comingIn": "หน้านี้จะสร้างในเฟส 5"
+  },
+  "settings": {
+    "language": "ภาษา",
+    "languageTh": "ไทย",
+    "languageEn": "English"
+  }
+}
