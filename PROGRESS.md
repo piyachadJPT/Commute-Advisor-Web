@@ -190,8 +190,22 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - `returnTo` ของฟอร์มเป็นค่าจากรายการตายตัว (เทียบค่า ไม่ตามที่ผู้ใช้ส่งมา) จึงไม่เป็น open redirect
 - **ขั้นแจ้งเตือนยังเป็นหน้าอธิบาย** ระบุตรงๆ ว่ายังไม่เปิดใช้ การขอสิทธิ์ push และขั้นแนะนำ Add to Home Screen บน iPhone ทำใน Phase 6
 
-**ที่เหลือใน Phase 5 (ลำดับที่เสนอ)**
-1. Icon/manifest, hero scene (SVG ชั่วคราวเดิมอยู่), Playwright snapshot และ design review gate (§12.5)
+**ทำแล้ว: ไอคอนและ manifest (ชิ้นที่ 6)** `typecheck`/`lint`/`build` ผ่าน (ดูภาพไอคอนที่เรนเดอร์แล้ว แต่ยังไม่ได้ติดตั้งลงมือถือจริง)
+- เครื่องหมายแอป: เมฆฝนสีขาวกับล้อสีเหลือง (สีจาก token `--scene-sun`) บนพื้นฟ้า `#2d78b8` ที่ `src/app/icon.svg` (ใช้เป็น favicon SVG ด้วย) งานศิลป์อยู่ในโซนปลอดภัยของ maskable จึงใช้ไฟล์ต้นทางเดียวทุกขนาด
+- `npm run app-icons` (`scripts/gen-app-icons.mjs`, ใช้ `sharp` ซึ่งเพิ่มเป็น devDependency) เรนเดอร์ `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` และ `src/app/apple-icon.png` (180 px, Next ใส่ apple-touch-icon ให้เอง) ไฟล์ PNG ถูก commit ไว้ ไม่ต้องรันซ้ำตอน build
+- `src/app/manifest.ts`: `display: standalone`, `start_url: /`, `lang: th`, ชื่อภาษาไทย, `theme_color`/`background_color` `#eef4fa` ตรงกับ theme-color ของ layout; `appleWebApp` ใน metadata ให้แอปบน iPhone เปิดแบบ standalone
+- ลบ `src/app/favicon.ico` (ไอคอนเริ่มต้นของ create-next-app)
+- ตัดสินใจ: `short_name` ตั้งเป็น "Commute" (ชื่อแบรนด์ ป้ายใต้ไอคอนสั้น) ส่วน `name` เป็นภาษาไทย ถ้าอยากให้ป้ายใต้ไอคอนเป็นไทยให้แก้ `short_name` ใน `manifest.ts`
+
+**ทำแล้ว: ชุดควบคุมฟอร์มที่เขียนเอง (ตามคำขอ)** `typecheck`/`lint`/`build` ผ่าน เทสต์ 234 ข้อผ่าน **ยังไม่ได้ลองใช้งานในเบราว์เซอร์และไม่มีเทสต์ของตัวควบคุมเหล่านี้** (เป็นงานโต้ตอบ ต้องลองด้วยมือ)
+- `src/components/ui/`: `TimeField` (ปุ่มเปิดแผงเลือกชั่วโมง/นาทีสองคอลัมน์), `NumberStepper` (ปุ่มลบ/บวกพร้อมพิมพ์ได้), `Slider` (ลาก/กด/คีย์บอร์ด, snap ตาม step), `Combobox` (ช่องพิมพ์พร้อมรายการแนะนำของเราเอง ตามรูปแบบ ARIA combobox), `ToggleChip` (ปุ่มเลือกวัน `role="checkbox"`), `Disclosure` (แทน `<details>`), `TextField`
+- ใช้ใน `commute-form` (เวลา, ระยะเวลา, วัน, เกณฑ์ฝน), `location-picker` (ค้นหา, พิกัด, ชื่อ, ส่วนกรอกพิกัดเอง) และ `login-form`
+- ช่องพิมพ์ยังเป็นองค์ประกอบ `<input>` (จำเป็นสำหรับการพิมพ์และ IME ภาษาไทย) แต่ล้างหน้าตาเดิมของเบราว์เซอร์ใน `globals.css` ทั้งหมด (ปุ่มล้างช่องค้นหา, ลูกศรเลข, สีพื้น autofill)
+- ทุกตัวส่งค่าผ่าน hidden input จึงใช้กับ Server Actions เดิมได้โดยไม่แก้ฝั่งเซิร์ฟเวอร์
+- ข้อจำกัดที่ตั้งใจ: รายการ autofill ของเบราว์เซอร์ (เช่นอีเมลที่จำไว้ในหน้าล็อกอิน) ปรับแต่งไม่ได้ จึงคงไว้เพราะช่วยผู้ใช้
+
+**ที่เหลือใน Phase 5**
+1. hero scene (SVG ชั่วคราวเดิมอยู่ ยังไม่ใช่ Lottie), Playwright snapshot และ design review gate (§12.5) ซึ่งต้องดูหน้าจอจริง
 2. day detail แบบ sheet (ถ้ายังต้องการ), pull-to-refresh, แบนเนอร์ sync ล้มเหลว
 
 ## หลังจากนั้น

@@ -3,9 +3,12 @@
 import { useActionState, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
+import { Combobox } from "@/components/ui/combobox";
+import { Disclosure } from "@/components/ui/disclosure";
+import { TextField } from "@/components/ui/text-field";
 import { saveLocation } from "../actions";
 import { initialSettingsState } from "../state";
-import { fieldLabel, input, primaryButton, quietButton } from "./styles";
+import { fieldLabel, primaryButton, quietButton } from "./styles";
 
 type Place = {
   id: number;
@@ -42,6 +45,7 @@ export function LocationPicker({
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [name, setName] = useState(initialName);
+  const [manualOpen, setManualOpen] = useState(false);
   const [geo, setGeo] = useState<"idle" | "locating" | "denied">("idle");
 
   const q = query.trim();
@@ -73,11 +77,26 @@ export function LocationPicker({
   const current = found?.q === q ? found : null;
   const searching = q.length >= MIN_CHARS && current === null;
   const canSave = NUMBER.test(lat) && NUMBER.test(lon);
+  const places = q.length >= MIN_CHARS ? (current?.places ?? []) : [];
 
-  function choose(p: Place) {
+  const status =
+    q.length < MIN_CHARS
+      ? t("searchHint")
+      : searching
+        ? t("searching")
+        : current?.places === null
+          ? t("searchFailed")
+          : current?.places.length === 0
+            ? t("noResults")
+            : null;
+
+  function choose(id: string) {
+    const p = places.find((x) => String(x.id) === id);
+    if (!p) return;
     setLat(String(p.latitude));
     setLon(String(p.longitude));
     setName([p.name, p.admin1].filter(Boolean).join(", ").slice(0, 80));
+    setManualOpen(true);
   }
 
   function useMyLocation() {
@@ -87,6 +106,7 @@ export function LocationPicker({
         setLat(pos.coords.latitude.toFixed(5));
         setLon(pos.coords.longitude.toFixed(5));
         setName(t("currentName"));
+        setManualOpen(true);
         setGeo("idle");
       },
       () => setGeo("denied"),
@@ -99,53 +119,20 @@ export function LocationPicker({
       <input type="hidden" name="key" value={locationKey} />
       <input type="hidden" name="returnTo" value={returnTo} />
 
-      <div>
-        <label htmlFor="place-search" className={fieldLabel}>
-          {t("search")}
-        </label>
-        <input
-          id="place-search"
-          type="search"
-          autoComplete="off"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-describedby="place-search-status"
-          className={input}
-        />
-        <p
-          id="place-search-status"
-          role="status"
-          className="mt-1.5 text-caption text-ink-3"
-        >
-          {q.length < MIN_CHARS
-            ? t("searchHint")
-            : searching
-              ? t("searching")
-              : current?.places === null
-                ? t("searchFailed")
-                : current?.places.length === 0
-                  ? t("noResults")
-                  : null}
-        </p>
-        {current?.places && current.places.length > 0 ? (
-          <ul className="mt-2 divide-y divide-divider overflow-hidden rounded-control border border-divider bg-glass-strong">
-            {current.places.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => choose(p)}
-                  className="flex min-h-12 w-full flex-col items-start justify-center px-3.5 py-2 text-left transition-colors duration-(--duration-fast) hover:bg-fill-soft"
-                >
-                  <span className="text-body font-medium">{p.name}</span>
-                  <span className="text-caption text-ink-3">
-                    {[p.admin1, p.country].filter(Boolean).join(", ")}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+      <Combobox
+        id="place-search"
+        label={t("search")}
+        value={query}
+        onChange={setQuery}
+        options={places.map((p) => ({
+          id: String(p.id),
+          label: p.name,
+          description: [p.admin1, p.country].filter(Boolean).join(", "),
+        }))}
+        onSelect={(o) => choose(o.id)}
+        status={status}
+        listLabel={t("results")}
+      />
 
       <div>
         <button
@@ -164,54 +151,54 @@ export function LocationPicker({
         ) : null}
       </div>
 
-      <details
-        className="rounded-control border border-divider px-3.5 py-2"
-        open={lat !== "" || lon !== ""}
+      <Disclosure
+        label={t("manual")}
+        open={manualOpen}
+        onToggle={() => setManualOpen((o) => !o)}
       >
-        <summary className="min-h-11 cursor-pointer py-2 text-label font-semibold">
-          {t("manual")}
-        </summary>
-        <div className="grid gap-4 pt-2 pb-2 sm:grid-cols-2">
+        <div className="grid gap-4 pt-1 sm:grid-cols-2">
           <div>
             <label htmlFor="latitude" className={fieldLabel}>
               {t("latitude")}
             </label>
-            <input
+            <TextField
               id="latitude"
               name="latitude"
               inputMode="decimal"
+              autoComplete="off"
               value={lat}
               onChange={(e) => setLat(e.target.value)}
-              className={`${input} tabular-nums`}
+              className="tabular-nums"
             />
           </div>
           <div>
             <label htmlFor="longitude" className={fieldLabel}>
               {t("longitude")}
             </label>
-            <input
+            <TextField
               id="longitude"
               name="longitude"
               inputMode="decimal"
+              autoComplete="off"
               value={lon}
               onChange={(e) => setLon(e.target.value)}
-              className={`${input} tabular-nums`}
+              className="tabular-nums"
             />
           </div>
         </div>
-      </details>
+      </Disclosure>
 
       <div>
         <label htmlFor="place-name" className={fieldLabel}>
           {t("name")}
         </label>
-        <input
+        <TextField
           id="place-name"
           name="name"
           maxLength={80}
+          autoComplete="off"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className={input}
         />
         <p className="mt-1.5 text-caption text-ink-3">{t("precisionNote")}</p>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DragScroll } from "@/components/drag-scroll";
 import type { HourlySeries } from "../view";
 import { FIRST_HOUR } from "../view";
 import { riskLevelOf } from "@/features/commute/domain/labels";
@@ -94,11 +95,9 @@ export function HourlyChartCard({
         </div>
       </div>
 
-      <div
-        role="region"
-        aria-label={labels.title}
-        tabIndex={0}
-        className="-mx-[1.125rem] overflow-x-auto px-[1.125rem] focus-visible:outline-offset-[-2px]"
+      <DragScroll
+        label={labels.title}
+        className="-mx-[1.125rem] px-[1.125rem] focus-visible:outline-offset-[-2px]"
       >
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -221,7 +220,7 @@ export function HourlyChartCard({
             </text>
           ))}
         </svg>
-      </div>
+      </DragScroll>
     </section>
   );
 }

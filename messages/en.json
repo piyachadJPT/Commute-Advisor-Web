@@ -157,8 +157,11 @@
       "title": "Commute",
       "departure": "Outbound",
       "return": "Return",
-      "duration": "Window length (minutes)",
-      "days": "Commute days"
+      "duration": "Window length",
+      "days": "Commute days",
+      "decrease": "Decrease",
+      "increase": "Increase",
+      "minutes": "min"
     },
     "days": {
       "mon": "Mon",
@@ -204,9 +207,15 @@
       "save": "Save location",
       "saving": "Saving",
       "invalid": "Check the coordinates and try again",
-      "failed": "Could not save. Try again."
+      "failed": "Could not save. Try again.",
+      "results": "Search results"
     },
-    "continue": "Continue"
+    "continue": "Continue",
+    "time": {
+      "hours": "Hour",
+      "minutes": "Minute",
+      "done": "Done"
+    }
   },
   "auth": {
     "app": "Commute Advisor",

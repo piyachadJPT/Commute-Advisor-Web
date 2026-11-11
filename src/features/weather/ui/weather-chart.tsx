@@ -1,6 +1,7 @@
 import { riskLevelOf } from "@/features/commute/domain/labels";
 import { RISK_STYLE } from "@/features/dashboard/ui/risk-style";
 import type { WeatherView } from "../domain/buildWeatherView";
+import { DragScroll } from "@/components/drag-scroll";
 
 type Props = {
   view: WeatherView;
@@ -34,11 +35,9 @@ export function WeatherChart({
   windowLabels,
 }: Props) {
   return (
-    <div
-      role="region"
-      aria-label={title}
-      tabIndex={0}
-      className="-mx-[1.125rem] overflow-x-auto px-[1.125rem] focus-visible:outline-offset-[-2px]"
+    <DragScroll
+      label={title}
+      className="-mx-[1.125rem] px-[1.125rem] focus-visible:outline-offset-[-2px]"
     >
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -158,6 +157,6 @@ export function WeatherChart({
           </text>
         ))}
       </svg>
-    </div>
+    </DragScroll>
   );
 }

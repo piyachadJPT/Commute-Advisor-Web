@@ -14,6 +14,7 @@
   --color-ink-3: var(--ink-3);
   --color-glass: var(--glass);
   --color-glass-strong: var(--glass-strong);
+  --color-glass-solid: var(--glass-solid);
   --color-glass-line: var(--glass-line);
   --color-divider: var(--divider);
   --color-fill-soft: var(--fill-soft);
@@ -162,4 +163,59 @@
     transparent 0 22px,
     var(--rain-streak) 22px 23px
   );
+}
+
+/*
+ * Hide every scrollbar, including the page's own. Scrolling by wheel, touch, keyboard and drag
+ * is unaffected. Kept outside any @layer and marked !important so nothing can bring one back;
+ * `html` and `body` are named because browsers treat the page scrollbar separately.
+ *   Firefox, Chrome 121+, Safari 18.2+: scrollbar-width. Older Chromium/Safari: ::-webkit-scrollbar.
+ */
+html,
+body,
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/*
+ * Form controls are ours. Text entry stays a real <input> (typing and Thai input methods need
+ * it), so strip what the browser adds around it: native look, search clear button, number
+ * spinners and the autofill tint. In @layer base on purpose: unlayered rules would beat every
+ * Tailwind utility (colour, font size and weight) on these elements.
+ */
+@layer base {
+  input,
+  button,
+  textarea {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    display: none;
+  }
+  input[type="number"] {
+    appearance: textfield;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    caret-color: var(--ink);
+    box-shadow: 0 0 0 100px var(--glass-strong) inset;
+    transition: background-color 600000s 0s;
+  }
 }

@@ -3,13 +3,12 @@
 import { useActionState, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
+import { TextField } from "@/components/ui/text-field";
 import { submitAuth } from "./actions";
 import { initialAuthState, OTP_DIGITS } from "./state";
 
 const RESEND_SECONDS = 60; // Supabase allows one code per user per minute
 
-const input =
-  "block min-h-12 w-full rounded-control border border-divider bg-glass-strong px-3.5 text-body text-ink placeholder:text-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2";
 const primary =
   "inline-flex min-h-12 w-full items-center justify-center rounded-control bg-primary px-4 text-body font-semibold text-primary-ink transition-opacity duration-(--duration-fast) hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
 const quiet =
@@ -35,7 +34,7 @@ export function LoginForm({ next }: { next: string }) {
             >
               {t("email.label")}
             </label>
-            <input
+            <TextField
               id="email"
               name="email"
               type="email"
@@ -52,7 +51,6 @@ export function LoginForm({ next }: { next: string }) {
               placeholder={t("email.placeholder")}
               aria-invalid={state.error === "invalidEmail"}
               aria-describedby={state.error ? errorId : undefined}
-              className={input}
             />
           </div>
           <ErrorLine id={errorId} error={state.error} />
@@ -73,7 +71,7 @@ export function LoginForm({ next }: { next: string }) {
               >
                 {t("code.label")}
               </label>
-              <input
+              <TextField
                 id="code"
                 name="code"
                 type="text"
@@ -85,7 +83,7 @@ export function LoginForm({ next }: { next: string }) {
                 autoFocus
                 aria-invalid={state.error === "invalidCode"}
                 aria-describedby={state.error ? errorId : "code-hint"}
-                className={`${input} text-center text-headline tracking-[0.3em] tabular`}
+                className="text-center text-headline tracking-[0.3em] tabular"
               />
               <p id="code-hint" className="mt-1.5 text-caption text-ink-3">
                 {t("code.hint", { email: state.email })}

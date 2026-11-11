@@ -2,10 +2,14 @@
 
 import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
+import { NumberStepper } from "@/components/ui/number-stepper";
+import { Slider } from "@/components/ui/slider";
+import { TimeField } from "@/components/ui/time-field";
+import { ToggleChip } from "@/components/ui/toggle-chip";
 import { saveCommuteSettings } from "../actions";
 import { initialSettingsState } from "../state";
 import { WEEKDAY_BITS } from "../schemas";
-import { card, cardTitle, fieldLabel, input, primaryButton } from "./styles";
+import { card, cardTitle, fieldLabel, primaryButton } from "./styles";
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
@@ -20,8 +24,9 @@ type Props = {
 };
 
 /**
- * Commute times, days and the rain threshold. Fields are controlled on purpose: React resets
- * uncontrolled fields after every form action, which would wipe the form after saving.
+ * Commute times, days and the rain threshold, built from our own controls. Fields are
+ * controlled on purpose: React resets uncontrolled fields after every form action, which would
+ * wipe the form after saving. Each control submits through a hidden input.
  */
 export function CommuteForm(initial: Props) {
   const onboarding = initial.variant === "onboarding";
@@ -32,9 +37,14 @@ export function CommuteForm(initial: Props) {
   );
   const [departure, setDeparture] = useState(initial.departureTime);
   const [ret, setRet] = useState(initial.returnTime);
-  const [duration, setDuration] = useState(String(initial.durationMinutes));
+  const [duration, setDuration] = useState(initial.durationMinutes);
   const [threshold, setThreshold] = useState(initial.threshold);
   const [days, setDays] = useState(initial.commuteDays);
+  const timeLabels = {
+    hours: t("time.hours"),
+    minutes: t("time.minutes"),
+    done: t("time.done"),
+  };
 
   return (
     <form action={action} className="space-y-6">
@@ -44,57 +54,44 @@ export function CommuteForm(initial: Props) {
           <input type="hidden" name="threshold" value={threshold} />
         </>
       ) : null}
-      <section aria-labelledby="commute-title" className={card}>
+      {/* z-20: the time pickers open over the cards below this one */}
+      <section
+        aria-labelledby="commute-title"
+        className={`${card} relative z-20`}
+      >
         <h2 id="commute-title" className={cardTitle}>
           {t("commute.title")}
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="departureTime" className={fieldLabel}>
-              {t("commute.departure")}
-            </label>
-            <input
-              id="departureTime"
-              name="departureTime"
-              type="time"
-              required
-              value={departure}
-              onChange={(e) => setDeparture(e.target.value)}
-              className={`${input} tabular-nums`}
-            />
-          </div>
-          <div>
-            <label htmlFor="returnTime" className={fieldLabel}>
-              {t("commute.return")}
-            </label>
-            <input
-              id="returnTime"
-              name="returnTime"
-              type="time"
-              required
-              value={ret}
-              onChange={(e) => setRet(e.target.value)}
-              className={`${input} tabular-nums`}
-            />
-          </div>
-          <div>
-            <label htmlFor="durationMinutes" className={fieldLabel}>
-              {t("commute.duration")}
-            </label>
-            <input
-              id="durationMinutes"
-              name="durationMinutes"
-              type="number"
-              inputMode="numeric"
-              min={15}
-              max={180}
-              step={5}
-              required
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className={`${input} tabular-nums`}
-            />
-          </div>
+          <TimeField
+            id="departureTime"
+            name="departureTime"
+            label={t("commute.departure")}
+            value={departure}
+            onChange={setDeparture}
+            labels={timeLabels}
+          />
+          <TimeField
+            id="returnTime"
+            name="returnTime"
+            label={t("commute.return")}
+            value={ret}
+            onChange={setRet}
+            labels={timeLabels}
+          />
+          <NumberStepper
+            id="durationMinutes"
+            name="durationMinutes"
+            label={t("commute.duration")}
+            value={duration}
+            onChange={setDuration}
+            min={15}
+            max={180}
+            step={5}
+            unit={t("commute.minutes")}
+            decreaseLabel={t("commute.decrease")}
+            increaseLabel={t("commute.increase")}
+          />
         </div>
 
         <fieldset className="mt-5">
@@ -103,20 +100,15 @@ export function CommuteForm(initial: Props) {
             {DAY_KEYS.map((key, i) => {
               const bit = WEEKDAY_BITS[i]!;
               return (
-                <label
+                <ToggleChip
                   key={key}
-                  className="relative inline-flex min-h-11 min-w-12 cursor-pointer items-center justify-center rounded-chip border border-divider px-3 text-label font-semibold text-ink-2 transition-colors duration-(--duration-fast) has-checked:border-transparent has-checked:bg-primary has-checked:text-primary-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-2"
+                  name="day"
+                  value={bit}
+                  checked={(days & bit) !== 0}
+                  onToggle={() => setDays((d) => d ^ bit)}
                 >
-                  <input
-                    type="checkbox"
-                    name="day"
-                    value={bit}
-                    checked={(days & bit) !== 0}
-                    onChange={() => setDays((d) => d ^ bit)}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
                   {t(`days.${key}`)}
-                </label>
+                </ToggleChip>
               );
             })}
           </div>
@@ -124,26 +116,28 @@ export function CommuteForm(initial: Props) {
       </section>
 
       {onboarding ? null : (
-        <section aria-labelledby="analysis-title" className={card}>
+        <section
+          aria-labelledby="analysis-title"
+          className={`${card} relative z-10`}
+        >
           <h2 id="analysis-title" className={cardTitle}>
             {t("analysis.title")}
           </h2>
-          <label htmlFor="threshold" className={`${fieldLabel} mt-4`}>
+          <p id="threshold-label" className={`${fieldLabel} mt-4`}>
             {t("analysis.threshold")}
             <span className="ml-2 font-semibold tabular-nums">
               {threshold}%
             </span>
-          </label>
-          <input
-            id="threshold"
+          </p>
+          <Slider
             name="threshold"
-            type="range"
+            labelledBy="threshold-label"
+            value={threshold}
+            onChange={setThreshold}
             min={10}
             max={90}
             step={5}
-            value={threshold}
-            onChange={(e) => setThreshold(Number(e.target.value))}
-            className="block min-h-11 w-full accent-primary"
+            valueText={`${threshold}%`}
           />
           <p className="mt-1 text-caption text-ink-3" aria-live="polite">
             {t("analysis.preview", { value: threshold })}
