@@ -120,6 +120,38 @@
   "settings": {
     "language": "Language",
     "languageTh": "ไทย",
-    "languageEn": "English"
+    "languageEn": "English",
+    "account": {
+      "title": "Account",
+      "signedInAs": "Signed in as {email}",
+      "signOut": "Sign out"
+    }
+  },
+  "auth": {
+    "app": "Commute Advisor",
+    "title": "Sign in",
+    "intro": "Enter your email and we will send a 6-digit code. No password needed.",
+    "closed": "This is a private app and sign-up is closed. If this email has an account, the code arrives within a few minutes.",
+    "email": {
+      "label": "Email",
+      "placeholder": "name@example.com",
+      "submit": "Send code",
+      "sending": "Sending code"
+    },
+    "code": {
+      "label": "6-digit code",
+      "hint": "Sent to {email}. The code is valid for 10 minutes.",
+      "submit": "Sign in",
+      "verifying": "Checking code",
+      "resend": "Send a new code",
+      "resendIn": "Send again in {seconds}s",
+      "changeEmail": "Use a different email"
+    },
+    "error": {
+      "invalidEmail": "That email looks wrong. Check the spelling and try again.",
+      "invalidCode": "The code is wrong or has expired. Try again, or ask for a new code.",
+      "rateLimited": "Too many requests. Wait a moment and try again.",
+      "sendFailed": "The email could not be sent. Try again in a moment."
+    }
   }
 }

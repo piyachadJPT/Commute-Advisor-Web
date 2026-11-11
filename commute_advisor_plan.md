@@ -283,7 +283,7 @@ Each daily result includes:
 ### 6.0 Rules for every table
 
 - Every table has `user_id uuid not null references auth.users(id) on delete cascade`. Deleting the account deletes all of the user's data.
-- RLS is enabled on every table, with policies for `select`, `insert`, `update` and `delete` that require `user_id = (select auth.uid())`.
+- RLS is enabled on every table. Policies require `user_id = (select auth.uid())` and exist for exactly the operations the app performs with the user-scoped client (least privilege): e.g. `notification_logs` is read-only for users and `settings` is never deleted directly. Grants are explicit, `anon` has none, and `job_runs` is closed to every API role.
 - The browser and Server Components use the user-scoped client (the anon/publishable key plus the session cookie), so RLS always applies.
 - Only the job routes under `/api/jobs/*` use the service-role (secret) key, from a module marked `import 'server-only'`. That key is never exposed to the browser.
 - Any operation that needs more than one statement in a transaction is written as a Postgres function and called with `supabase.rpc(...)`. The Supabase JS client cannot run multi-statement transactions.
@@ -435,7 +435,7 @@ This table is not user data. RLS denies all access to the anon and authenticated
 
 ### 6.9 Database requirements
 
-- A forecast batch and its sync log are saved together by the function `save_forecast_batch(location_key, rows jsonb, log jsonb)`.
+- A forecast batch and its sync log are saved together by the function `save_forecast_batch(p_user_id, p_location_key, p_latitude, p_longitude, p_fetched_at, p_rows jsonb, p_log jsonb)`. It takes the user, coordinates and fetch time explicitly because jobs call it with the service role. It is `SECURITY INVOKER`, so a signed-in caller can only write their own rows, and it refuses a batch whose coordinates no longer match the configured location (`location_changed`). An empty `p_rows` writes only the log, which is how a failed or skipped sync is recorded.
 - If the API response is invalid, do not call the function. Valid cached data is never overwritten.
 - **Retention** is a pg_cron SQL job that runs daily at 03:00 Asia/Bangkok. pg_cron uses UTC, so the schedule is `0 20 * * *`.
   - `hourly_forecasts`, `forecast_sync_logs`, `notification_logs`, `job_runs`: delete rows older than 14 days.
@@ -799,7 +799,7 @@ Only the production project has the pg_cron tick enabled. Staging gets a disable
 | Variable | Exposure | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Anon / publishable key (RLS applies) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public | Publishable key (RLS applies). Renamed from `..._ANON_KEY` to match Supabase's current key naming |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Service-role / secret key, used by jobs only |
 | `JOB_SECRET` | Server only, also in Supabase Vault | Authenticates pg_cron calls |
 | `CRON_SECRET` | Server only | Authenticates Vercel Cron calls |
@@ -812,9 +812,16 @@ Validate all of them with Zod at startup (`src/lib/env.ts`). The build fails if 
 
 ### 14.3 Authentication
 
-- Supabase Auth with a **6-digit email OTP code**, not a magic link. On iOS a magic link opens in Safari, and Safari's session is not shared with the installed Home Screen app. A code typed inside the app avoids this.
+- Supabase Auth with a **6-digit email OTP code** valid for **10 minutes**, not a magic link. On iOS a magic link opens in Safari, and Safari's session is not shared with the installed Home Screen app. A code typed inside the app avoids this.
 - Public sign-up is disabled. The owner's account is created through an invite from the Supabase dashboard.
-- Sessions use refresh tokens, so the user rarely needs to sign in again.
+- Sessions use refresh tokens, so the user rarely needs to sign in again. Session cookies are set only by the server and are `HttpOnly`, `SameSite=Lax` and `Secure` in production. The app does not use the Supabase browser client.
+- An unknown email gets the same "code sent" screen as a real one, so the form cannot be used to find out which emails have an account.
+- **Hosted project checklist (staging and production), none of which `supabase db push` applies:**
+  - Authentication → Sign In / Providers → turn **off** "Allow new users to sign up". If it stays on, anyone can create an account by calling the Auth API directly, because `shouldCreateUser: false` only protects this app's form.
+  - Set the Email OTP expiration to 600 seconds.
+  - Make the Magic Link email template show `{{ .Token }}` (copy `supabase/templates/magic_link.html`). Since June 2026 a Free project on the default SMTP cannot customise email templates, and the default email may contain only a link. Set up custom SMTP (Resend, Brevo or similar, free tiers exist) first. The default SMTP also sends only to organisation members and at a very low rate.
+  - Set Site URL and the redirect allow-list to the production URL.
+  - Invite the owner from the dashboard.
 
 ### 14.4 Security
 
@@ -971,7 +978,7 @@ src/
 │   └── onboarding/
 │       (each as needed: domain/ data/ ui/ actions.ts)
 ├── lib/
-│   ├── supabase/         // server.ts, browser.ts, service.ts (server-only)
+│   ├── supabase/         // server.ts, proxy.ts, cookie-options.ts, service.ts (server-only, Phase 3/6)
 │   ├── time/             // clock.ts, tz.ts, thaiDate.ts
 │   ├── env.ts
 │   └── database.types.ts // generated
@@ -1016,10 +1023,10 @@ An ESLint `no-restricted-imports` rule enforces that `src/features/commute` impo
 ### Phase 2 — Supabase & Auth
 
 - [ ] Create the staging and production projects in the Singapore region.
-- [ ] Write migrations for every table in §6, with constraints, RLS policies, functions, the lock trigger and the retention job.
-- [ ] Generate TypeScript types.
-- [ ] Implement OTP sign-in with `@supabase/ssr`, `proxy.ts` and sign-up disabled.
-- [ ] Add the database and RLS tests (§16.2).
+- [x] Write migrations for every table in §6, with constraints, RLS policies, functions, the lock trigger and the retention job.
+- [x] Generate TypeScript types (`npm run db:types`).
+- [x] Implement OTP sign-in with `@supabase/ssr`, `proxy.ts` and sign-up disabled.
+- [x] Add the database and RLS tests (§16.2). Run with `supabase start` then `npm test`.
 
 **Exit criteria:** The owner can sign in, and settings, skip days and recommendations persist under RLS.
 

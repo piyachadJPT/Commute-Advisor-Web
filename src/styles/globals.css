@@ -52,6 +52,8 @@
   --text-numeral--line-height: var(--leading-numeral);
   --text-temp: var(--text-temp);
   --text-temp--line-height: var(--leading-temp);
+  --text-headline: var(--text-headline);
+  --text-headline--line-height: var(--leading-headline);
   --text-title: var(--text-title);
   --text-title--line-height: var(--leading-title);
   --text-body: var(--text-body);
