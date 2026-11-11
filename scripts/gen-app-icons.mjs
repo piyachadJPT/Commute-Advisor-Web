@@ -18,7 +18,7 @@ const outputs = [
 ];
 
 for (const [path, size] of outputs) {
-  await sharp(svg, { density: (72 * size) / 512 * 4 })
+  await sharp(svg, { density: ((72 * size) / 512) * 4 })
     .resize(size, size)
     .png({ compressionLevel: 9 })
     .toFile(path);
