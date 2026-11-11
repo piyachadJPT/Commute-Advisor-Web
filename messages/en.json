@@ -129,7 +129,9 @@
         "body": "Choose at least one commute day in Settings.",
         "cta": "Open settings"
       }
-    }
+    },
+    "offline": "Offline · data from {when}",
+    "offlineNoTime": "Offline · no forecast saved"
   },
   "placeholder": {
     "weather": "Hourly forecast for home and work",
@@ -366,5 +368,17 @@
       "body": "On each commute day at {time} you get one message with the vehicle and the main reason, built from a forecast fetched shortly before.",
       "example": "Car · return trip 70% chance of rain"
     }
+  },
+  "offline": {
+    "noData": {
+      "title": "No saved data yet",
+      "body": "Open the app once while you are online and the latest recommendation is kept here for next time."
+    },
+    "needsConnection": {
+      "title": "This page needs a connection",
+      "body": "Weather, History and Settings load from the server. The saved recommendation is still available."
+    },
+    "retry": "Try again",
+    "openSaved": "Open the saved recommendation"
   }
 }

@@ -17,7 +17,10 @@ function load() {
   }> = [];
 
   const self = {
-    location: { origin: "https://app.example" },
+    location: {
+      href: "https://app.example/sw.js",
+      origin: "https://app.example",
+    },
     addEventListener: (type: string, fn: (e: unknown) => void) =>
       (listeners[type] = fn),
     skipWaiting: vi.fn(),

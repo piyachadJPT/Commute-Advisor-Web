@@ -4,6 +4,7 @@ import { DashboardSkeleton } from "@/components/shell/shell-skeleton";
 import { loadDashboard } from "@/features/dashboard/data/loadDashboard";
 import { DashboardView } from "@/features/dashboard/ui/dashboard-view";
 import { NeedsSetup } from "@/features/dashboard/ui/needs-setup";
+import { SnapshotWriter } from "@/features/offline/snapshot-writer";
 import { defaultLocale, isLocale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -34,5 +35,10 @@ async function Dashboard() {
 
   if (data.kind === "needs-locations") return <NeedsSetup reason="locations" />;
   if (data.kind === "no-commute-days") return <NeedsSetup reason="days" />;
-  return <DashboardView view={data.view} locale={locale} now={now} />;
+  return (
+    <>
+      <DashboardView view={data.view} locale={locale} now={now} />
+      <SnapshotWriter view={data.view} locale={locale} />
+    </>
+  );
 }

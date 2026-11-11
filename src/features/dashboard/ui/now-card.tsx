@@ -1,11 +1,11 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import type { NowView } from "../view";
 import { condition } from "./condition";
 
 /** Current-hour forecast for one location (§11.2 item 6). */
-export async function NowCard({ now }: { now: NowView }) {
-  const t = await getTranslations("dashboard");
+export function NowCard({ now }: { now: NowView }) {
+  const t = useTranslations("dashboard");
   const c = now.weatherCode === null ? null : condition(now.weatherCode);
   const place = t(`place.${now.location}`);
 

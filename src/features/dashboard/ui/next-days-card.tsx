@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import type { Locale } from "@/i18n/config";
 import { formatDayMonth, formatWeekdayShort } from "@/lib/time/format";
@@ -6,7 +6,7 @@ import type { NextDayView } from "../view";
 import { VEHICLE_STYLE } from "./risk-style";
 
 /** Upcoming commute days inside the 3-day forecast (§11.2 item 7). */
-export async function NextDaysCard({
+export function NextDaysCard({
   days,
   locale,
   className = "",
@@ -15,7 +15,7 @@ export async function NextDaysCard({
   locale: Locale;
   className?: string;
 }) {
-  const t = await getTranslations("dashboard");
+  const t = useTranslations("dashboard");
   return (
     <section
       aria-labelledby="next-title"

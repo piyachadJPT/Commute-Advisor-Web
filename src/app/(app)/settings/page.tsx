@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
-import { signOut } from "@/features/auth/actions";
+import { SignOutForm } from "@/features/auth/sign-out-form";
 import { listSubscriptions } from "@/features/notifications/data/pushSubscriptionRepo";
 import { deviceLabel } from "@/features/notifications/domain/device";
 import { NotificationsSection } from "@/features/notifications/ui/notifications-section";
@@ -171,11 +171,7 @@ async function AccountSection({ email }: { email: string | null }) {
           {t("signedInAs", { email })}
         </p>
       ) : null}
-      <form action={signOut} className="mt-3">
-        <button type="submit" className={quietButton}>
-          {t("signOut")}
-        </button>
-      </form>
+      <SignOutForm label={t("signOut")} />
     </section>
   );
 }

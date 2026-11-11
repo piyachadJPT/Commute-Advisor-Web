@@ -1,4 +1,4 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { useFormatter, useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import { skipToday } from "../actions";
 import type { TripView } from "../view";
@@ -17,7 +17,7 @@ type TripsCardProps = {
 };
 
 /** Both trips in one glass card, split by a dashed divider: one journey (§11.2). */
-export async function TripsCard({
+export function TripsCard({
   departure,
   returnTrip,
   threshold,
@@ -26,7 +26,7 @@ export async function TripsCard({
   warning,
   className = "",
 }: TripsCardProps) {
-  const t = await getTranslations("dashboard");
+  const t = useTranslations("dashboard");
   return (
     <section
       aria-label={t("trips")}
@@ -72,15 +72,9 @@ export async function TripsCard({
   );
 }
 
-async function Trip({
-  trip,
-  threshold,
-}: {
-  trip: TripView;
-  threshold: number;
-}) {
-  const t = await getTranslations("dashboard");
-  const format = await getFormatter();
+function Trip({ trip, threshold }: { trip: TripView; threshold: number }) {
+  const t = useTranslations("dashboard");
+  const format = useFormatter();
   const risk = RISK_STYLE[trip.riskLevel];
   const label = t(`trip.${trip.type}`);
 

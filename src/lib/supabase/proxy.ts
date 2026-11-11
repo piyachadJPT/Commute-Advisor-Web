@@ -6,7 +6,8 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { hardenCookie } from "./cookie-options";
 
 /** Paths a signed-out visitor may open. Everything else redirects to /login. */
-const PUBLIC_PATHS = ["/login"];
+// /offline is the service worker's fallback page: no user data, read from the device only.
+const PUBLIC_PATHS = ["/login", "/offline"];
 
 const isPublic = (pathname: string) =>
   PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

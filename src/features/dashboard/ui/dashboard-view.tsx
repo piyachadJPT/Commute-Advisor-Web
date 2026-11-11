@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import { localDateOf } from "@/features/commute/domain/tz";
 import type { Locale } from "@/i18n/config";
@@ -8,6 +8,7 @@ import {
   formatDayMonth,
   formatHeaderDate,
 } from "@/lib/time/format";
+import { OfflineNotice } from "@/features/offline/offline-notice";
 import { refreshForecast, unskipToday } from "../actions";
 import {
   FIRST_HOUR,
@@ -25,28 +26,39 @@ import { Sky } from "./sky";
 import { TripsCard } from "./trips-card";
 import { WeekCard } from "./week-card";
 
-type Translate = Awaited<ReturnType<typeof getTranslations<"dashboard">>>;
+type Translate = ReturnType<typeof useTranslations<"dashboard">>;
 
 const TIME_ZONE = "Asia/Bangkok"; // fixed in v2.0 (plan §2)
 const DEFAULT_THRESHOLD = 50; // the fixed risk labels are built around 50%
 
-export async function DashboardView({
+export function DashboardView({
   view,
   locale,
   now,
+  offline = false,
 }: {
   view: View;
   locale: Locale;
   now: Date;
+  /**
+   * Rendered from the device's saved copy with no connection (plan §11.4): the banner says
+   * "offline" and names when the data is from, and anything that needs the server is hidden.
+   */
+  offline?: boolean;
 }) {
-  const t = await getTranslations("dashboard");
+  const t = useTranslations("dashboard");
   const sky = SKY_FOR[view.vehicle];
   const max = view.hourly.home.map((h, i) => {
     const w = view.hourly.work[i] ?? null;
     return h === null || w === null ? null : Math.max(h, w);
   });
   const series = { max, home: view.hourly.home, work: view.hourly.work };
-  const needsRefresh = view.fetchedAt === null || view.stale;
+  const needsRefresh = !offline && (view.fetchedAt === null || view.stale);
+  // Names when the data is from, so cached data is never passed off as current (plan §4.6).
+  const offlineText =
+    view.fetchedAt === null
+      ? t("offlineNoTime")
+      : t("offline", { when: fetchedWhen(view.fetchedAt, now, locale, t) });
 
   return (
     <div data-sky={sky}>
@@ -60,10 +72,24 @@ export async function DashboardView({
           </p>
           <p className="text-caption text-hero-2">{t("route", view.route)}</p>
         </div>
-        <form action={refreshForecast}>
-          <RefreshButton label={t("refresh")} />
-        </form>
+        {offline ? null : (
+          <form action={refreshForecast}>
+            <RefreshButton label={t("refresh")} />
+          </form>
+        )}
       </header>
+
+      {offline ? (
+        <p
+          role="status"
+          className="mt-2 flex min-h-11 w-full items-center gap-2 rounded-tile bg-warn-surface px-4 py-2 text-label font-medium text-warn-ink shadow-glass"
+        >
+          <Icon name="wifiOff" className="size-5 shrink-0" />
+          <span className="tabular">{offlineText}</span>
+        </p>
+      ) : (
+        <OfflineNotice text={offlineText} />
+      )}
 
       {needsRefresh ? (
         <form action={refreshForecast} className="mt-2">
@@ -83,7 +109,7 @@ export async function DashboardView({
         </form>
       ) : null}
 
-      {view.skippedToday ? (
+      {view.skippedToday && !offline ? (
         <form
           action={unskipToday}
           className="mt-2 flex min-h-11 items-center justify-between gap-3 rounded-tile bg-glass px-4 py-1 text-label shadow-glass"
@@ -112,7 +138,7 @@ export async function DashboardView({
           departure={view.departure}
           returnTrip={view.returnTrip}
           threshold={view.threshold}
-          canSkip={view.canSkip}
+          canSkip={view.canSkip && !offline}
           warning={
             view.returnWarning === null
               ? null

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { DragScroll } from "@/components/drag-scroll";
 import { Icon } from "@/components/icon";
 import type { Locale } from "@/i18n/config";
@@ -7,7 +7,7 @@ import type { WeekDayView } from "../view";
 import { VEHICLE_STYLE } from "./risk-style";
 
 /** Mon–Fri at a glance: locked past days, today, forecast days (§11.2 item 8). */
-export async function WeekCard({
+export function WeekCard({
   week,
   locale,
   className = "",
@@ -16,7 +16,7 @@ export async function WeekCard({
   locale: Locale;
   className?: string;
 }) {
-  const t = await getTranslations("dashboard");
+  const t = useTranslations("dashboard");
   const first = week[0];
   const last = week.at(-1);
   const decided = week.filter((d) => d.kind !== "future");
