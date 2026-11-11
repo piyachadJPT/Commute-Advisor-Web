@@ -44,10 +44,15 @@ export function rainProbability(
   return Math.min(95, Math.round(20 + 75 * (1 - Math.exp(-wet / 0.8))));
 }
 
-/** Rows from the archive → the domain rows the engine reads, with the probability filled in. */
+/**
+ * Rows → the domain rows the engine reads, with the probability filled in. Archive rows have no
+ * probability, so it is estimated from the rain. Rows from the live forecast already carry a real
+ * one: with `keepProvidedProbability` it is kept, and only a missing value is estimated.
+ */
 export function toDomainRows(
   rows: readonly HourlyRow[],
   location: LocationKey,
+  options: { keepProvidedProbability?: boolean } = {},
 ): HourlyWeather[] {
   const sorted = [...rows].sort((a, b) =>
     a.forecast_time.localeCompare(b.forecast_time),
@@ -57,12 +62,15 @@ export function toDomainRows(
     location,
     temperature: r.temperature,
     humidity: r.humidity,
-    precipitationProbability: rainProbability(
-      sorted[i - 1]?.precipitation ?? null,
-      r.precipitation,
-      sorted[i + 1]?.precipitation ?? null,
-      r.humidity,
-    ),
+    precipitationProbability:
+      options.keepProvidedProbability && r.precipitation_probability !== null
+        ? r.precipitation_probability
+        : rainProbability(
+            sorted[i - 1]?.precipitation ?? null,
+            r.precipitation,
+            sorted[i + 1]?.precipitation ?? null,
+            r.humidity,
+          ),
     precipitation: r.precipitation,
     rain: r.rain,
     showers: r.showers,
@@ -105,12 +113,12 @@ export function distanceKm(
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
-/** First and last local date to backfill: `months` back from today, up to yesterday. */
+/** First and last local date to backfill: `months` back from today, up to today itself. */
 export function backfillRange(now: Date, months: number, timeZone: string) {
   const today = localDateOf(now, timeZone);
   return {
     from: addDays(today, -Math.round(months * 30.4)),
-    to: addDays(today, -1),
+    to: today,
   };
 }
 
@@ -127,8 +135,10 @@ export function planBackfill(input: {
   home: readonly HourlyWeather[];
   work: readonly HourlyWeather[];
   skipped: ReadonlySet<string>;
+  /** A day whose departure has not started yet is left for the app to lock itself. */
+  now: Date;
 }): { records: BackfillRecord[]; commuteDays: number; incompleteDays: number } {
-  const { from, to, settings, home, work, skipped } = input;
+  const { from, to, settings, home, work, skipped, now } = input;
   const tz = settings.timeZone;
   const records: BackfillRecord[] = [];
   let commuteDays = 0;
@@ -137,9 +147,10 @@ export function planBackfill(input: {
   for (let date = from; date <= to; date = addDays(date, 1)) {
     if (!isCommuteDay(date, settings.commuteDays) || skipped.has(date))
       continue;
+    const departureStart = zonedToInstant(date, settings.departureTime, tz);
+    if (departureStart.getTime() > now.getTime()) continue; // not locked yet: not history
     commuteDays++;
 
-    const departureStart = zonedToInstant(date, settings.departureTime, tz);
     const fetchedAt = zonedToInstant(date, "06:00" as LocalTime, tz);
     const computed = computeRecommendation({
       date,

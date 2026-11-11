@@ -20,13 +20,18 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { addDays, asLocalTime } from "@/features/commute/domain/tz";
+import {
+  addDays,
+  asLocalTime,
+  localDateOf,
+} from "@/features/commute/domain/tz";
 import type {
   CommuteSettings,
   LocalDate,
 } from "@/features/commute/domain/types";
 import {
   mapForecast,
+  fetchForecast,
   type HourlyRow,
 } from "@/features/forecast/data/openMeteoClient";
 import { forecastResponseSchema } from "@/features/forecast/data/openMeteoSchema";
@@ -76,7 +81,8 @@ async function fetchArchive(
       latitude: String(lat),
       longitude: String(lon),
       start_date: start,
-      end_date: addDays(last, 1),
+      // one day of overlap, but never past `to`: the archive refuses dates in the future
+      end_date: addDays(last, 1) <= to ? addDays(last, 1) : to,
       hourly: VARIABLES,
       timezone: "Asia/Bangkok",
     }).toString();
@@ -237,6 +243,38 @@ async function main() {
   const homeRows = toDomainRows(homeData.rows, "home");
   const workRows = toDomainRows(workData.rows, "work");
 
+  // Today: the archive has no rain for it yet, but the live forecast covers today's hours and
+  // carries a real chance of rain, so today comes from there (and replaces any archive rows).
+  const now = new Date();
+  const today = localDateOf(now, settings.timeZone);
+  for (const [place, rows, location] of [
+    [home, homeRows, "home"],
+    [work, workRows, "work"],
+  ] as const) {
+    try {
+      const forecast = (
+        await fetchForecast({ latitude: place.lat, longitude: place.lon })
+      ).filter(
+        (r) =>
+          localDateOf(new Date(r.forecast_time), settings.timeZone) === today,
+      );
+      const todays = toDomainRows(forecast, location, {
+        keepProvidedProbability: true,
+      });
+      const times = new Set(todays.map((r) => r.time.getTime()));
+      rows.splice(
+        0,
+        rows.length,
+        ...rows.filter((r) => !times.has(r.time.getTime())),
+        ...todays,
+      );
+    } catch {
+      console.log(
+        `  (ดึงพยากรณ์ของวันนี้ที่${location === "home" ? "บ้าน" : "ที่ทำงาน"}ไม่ได้ จะข้ามวันนี้ถ้าข้อมูลไม่ครบ)`,
+      );
+    }
+  }
+
   // Say exactly where the data is from, so it can be checked before anything is written.
   console.log(
     offline
@@ -267,6 +305,7 @@ async function main() {
     home: homeRows,
     work: workRows,
     skipped,
+    now,
   });
   const count = (v: string) => records.filter((r) => r.vehicle === v).length;
   console.log(

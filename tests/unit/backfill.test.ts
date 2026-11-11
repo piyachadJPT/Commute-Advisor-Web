@@ -108,6 +108,7 @@ function plan(opts: {
   from?: string;
   to?: string;
   days?: number;
+  now?: Date;
 }) {
   const h = (loc: "home" | "work") =>
     toDomainRows(
@@ -127,6 +128,7 @@ function plan(opts: {
     home: h("home"),
     work: h("work"),
     skipped: new Set(opts.skipped ?? []),
+    now: opts.now ?? new Date("2027-01-01T00:00:00Z"),
   });
 }
 
@@ -201,15 +203,42 @@ describe("planBackfill", () => {
   });
 });
 
+describe("today and the future", () => {
+  it("includes a day once its departure has started, and leaves a later one for the app", () => {
+    const at = (time: string) =>
+      plan({
+        from: "2026-11-11",
+        to: "2026-11-11",
+        now: bkk("2026-11-11", time),
+      });
+    expect(at("08:19").records).toHaveLength(0);
+    expect(at("08:19").commuteDays).toBe(0);
+    expect(at("08:20").records.map((r) => r.recommendation_date)).toEqual([
+      "2026-11-11",
+    ]);
+  });
+
+  it("keeps a real forecast probability when asked, and estimates only what is missing", () => {
+    const rows = [
+      row("09:00", { precipitation_probability: 63, precipitation: 0 }),
+      row("10:00", { precipitation: 0 }),
+    ];
+    const kept = toDomainRows(rows, "home", { keepProvidedProbability: true });
+    expect(kept[0]!.precipitationProbability).toBe(63);
+    expect(kept[1]!.precipitationProbability).toBe(10); // none given: a dry hour at 70% humidity
+    expect(toDomainRows(rows, "home")[0]!.precipitationProbability).toBe(10); // archive mode ignores 63
+  });
+});
+
 describe("backfillRange", () => {
-  it("goes back about N months and stops yesterday, by the local date", () => {
-    // 01:30 on Thu 12 Nov in Bangkok is still the 11th in UTC: today is the 12th, yesterday the 11th.
+  it("goes back about N months and ends today, by the local date", () => {
+    // 01:30 on Thu 12 Nov in Bangkok is still the 11th in UTC: today is the 12th.
     const r = backfillRange(
       new Date("2026-11-11T18:30:00Z"),
       6,
       "Asia/Bangkok",
     );
-    expect(r.to).toBe("2026-11-11");
+    expect(r.to).toBe("2026-11-12"); // today, by the local date
     expect(r.from).toBe("2026-05-14"); // 182 days before the 12th
   });
 });
