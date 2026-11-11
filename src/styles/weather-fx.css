@@ -1,0 +1,372 @@
+/*
+ * Weather animation for the Dashboard sky and hero scene (src/features/dashboard/ui/sky.tsx,
+ * weather-scene.tsx). Only transform and opacity are animated, so everything stays on the
+ * compositor. The global reduced-motion rule in globals.css stops all of it: each animation
+ * then ends at its resting frame, which is a valid still picture (drops sit off-screen or in
+ * place, stars stay lit, lightning stays dark).
+ */
+
+@keyframes fx-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes fx-sway {
+  0%,
+  100% {
+    transform: translateX(-3px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+@keyframes fx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fx-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.4;
+  }
+}
+@keyframes fx-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* Hero drop: falls from under the cloud and fades out */
+@keyframes fx-drop {
+  0% {
+    opacity: 0;
+    transform: translate(2px, -8px);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-7px, 26px);
+  }
+}
+@keyframes fx-bolt {
+  0%,
+  58%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  60%,
+  64% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.25;
+  }
+}
+@keyframes fx-flash {
+  0%,
+  58%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  60%,
+  64% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.3;
+  }
+}
+@keyframes fx-band {
+  0%,
+  100% {
+    transform: translateX(-10px);
+  }
+  50% {
+    transform: translateX(12px);
+  }
+}
+/* Full-screen drop: leans with the wind, 6.5° */
+@keyframes fx-fall {
+  from {
+    transform: translate3d(0, -16vh, 0) rotate(6.5deg);
+  }
+  to {
+    transform: translate3d(-16vh, 116vh, 0) rotate(6.5deg);
+  }
+}
+@keyframes fx-cloud-pass {
+  from {
+    transform: translate3d(-60vw, 0, 0);
+  }
+  to {
+    transform: translate3d(120vw, 0, 0);
+  }
+}
+@keyframes fx-mist-pass {
+  0%,
+  100% {
+    transform: translate3d(-8vw, 0, 0);
+  }
+  50% {
+    transform: translate3d(8vw, 0, 0);
+  }
+}
+@keyframes fx-glow {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes fx-heat {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  40% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+@keyframes fx-shoot {
+  0%,
+  88% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-24deg);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-46vw, 22vh, 0) rotate(-24deg);
+  }
+}
+@keyframes fx-rainbow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* ---- Hero scene (SVG) ---- */
+.fx-box {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.fx-float {
+  animation: fx-float 6s ease-in-out infinite;
+}
+.fx-sway {
+  animation: fx-sway 9s ease-in-out infinite;
+}
+.fx-sway-slow {
+  animation: fx-sway 13s ease-in-out infinite reverse;
+}
+.fx-spin {
+  animation: fx-spin 70s linear infinite;
+}
+.fx-pulse {
+  animation: fx-pulse 5s ease-in-out infinite;
+}
+.fx-twinkle {
+  animation: fx-twinkle var(--t, 3s) ease-in-out var(--d, 0s) infinite;
+}
+.fx-drop {
+  animation: fx-drop var(--t, 1s) linear var(--d, 0s) infinite;
+  opacity: 0;
+}
+.fx-bolt {
+  animation: fx-bolt 6s linear infinite;
+  opacity: 0;
+}
+.fx-heat {
+  animation: fx-heat 2.8s ease-in-out var(--d, 0s) infinite;
+  opacity: 0;
+}
+.fx-rainbow {
+  animation: fx-rainbow 6s ease-in-out infinite;
+}
+.fx-spin-fast {
+  animation: fx-spin 28s linear infinite;
+}
+.fx-band {
+  animation: fx-band var(--t, 11s) ease-in-out var(--d, 0s) infinite;
+}
+
+/* ---- Full-screen sky ---- */
+.fx-bg-drop {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--w, 1.5px);
+  height: var(--len, 56px);
+  border-radius: 999px;
+  background: linear-gradient(to bottom, transparent, var(--drop-ink));
+  opacity: var(--o, 0.5);
+  animation: fx-fall var(--t, 1s) linear var(--d, 0s) infinite;
+  transform: translate3d(0, -16vh, 0) rotate(6.5deg);
+  will-change: transform;
+}
+.fx-bg-puff {
+  position: absolute;
+  left: 0;
+  top: var(--y);
+  width: var(--size);
+  height: calc(var(--size) * 0.42);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    var(--puff-ink) 0%,
+    transparent 68%
+  );
+  filter: blur(14px);
+  opacity: var(--o, 1);
+  animation: fx-cloud-pass var(--t, 120s) linear var(--d, 0s) infinite;
+  transform: translate3d(-60vw, 0, 0);
+  will-change: transform;
+}
+.fx-bg-mist {
+  position: absolute;
+  left: -10vw;
+  right: -10vw;
+  top: var(--y);
+  height: 22vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--puff-ink) 50%,
+    transparent
+  );
+  filter: blur(18px);
+  animation: fx-mist-pass var(--t, 26s) ease-in-out var(--d, 0s) infinite;
+}
+.fx-bg-star {
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--scene-star);
+  opacity: 0.8;
+  animation: fx-twinkle var(--t, 3s) ease-in-out var(--d, 0s) infinite;
+}
+.fx-bg-glow {
+  position: absolute;
+  top: -12vh;
+  right: -8vw;
+  width: 70vmax;
+  height: 70vmax;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--glow-ink) 0%,
+    transparent 62%
+  );
+  animation: fx-glow 9s ease-in-out infinite;
+}
+.fx-bg-flash {
+  position: absolute;
+  inset: 0;
+  background: rgb(220 232 255 / 0.22);
+  opacity: 0;
+  animation: fx-flash 7s linear infinite;
+}
+
+/* A shooting star now and then on a clear night */
+.fx-bg-shoot {
+  position: absolute;
+  top: 8%;
+  right: 12%;
+  width: 90px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to right, transparent, #fff);
+  opacity: 0;
+  animation: fx-shoot 11s linear var(--d, 0s) infinite;
+}
+/* Sun low on the horizon at dawn and dusk */
+.fx-low .fx-bg-glow {
+  top: auto;
+  right: auto;
+  bottom: -38vmax;
+  left: 50%;
+  margin-left: -35vmax;
+}
+
+/* Colours per kind of sky (set on the Sky wrapper) */
+.fx-day {
+  --drop-ink: rgb(214 234 255 / 0.9);
+  --puff-ink: rgb(255 255 255 / 0.5);
+  --glow-ink: rgb(255 226 150 / 0.55);
+}
+.fx-day-wet {
+  --drop-ink: rgb(214 234 255 / 0.9);
+  --puff-ink: rgb(40 54 72 / 0.55);
+  --glow-ink: rgb(255 226 150 / 0.16);
+}
+.fx-night {
+  --drop-ink: rgb(170 204 245 / 0.85);
+  --puff-ink: rgb(150 176 214 / 0.14);
+  --glow-ink: rgb(190 210 255 / 0.2);
+}
+.fx-night-wet {
+  --drop-ink: rgb(170 204 245 / 0.85);
+  --puff-ink: rgb(10 16 26 / 0.6);
+  --glow-ink: rgb(190 210 255 / 0.06);
+}
+.fx-dusk {
+  --drop-ink: rgb(214 234 255 / 0.9);
+  --puff-ink: rgb(255 200 170 / 0.18);
+  --glow-ink: rgb(255 140 80 / 0.55);
+}
+.fx-hot {
+  --puff-ink: rgb(255 255 255 / 0.3);
+  --glow-ink: rgb(255 200 90 / 0.8);
+}
+@media (prefers-color-scheme: dark) {
+  .fx-day {
+    --puff-ink: rgb(220 232 248 / 0.16);
+    --glow-ink: rgb(255 214 130 / 0.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-bg-drop,
+  .fx-bg-flash,
+  .fx-bg-shoot {
+    display: none;
+  }
+}

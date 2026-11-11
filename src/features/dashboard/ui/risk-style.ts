@@ -50,11 +50,3 @@ export const VEHICLE_STYLE: Record<
     icon: "questionMark",
   },
 };
-
-export type SkyKind = "car" | "moto" | "mist";
-
-export const SKY_FOR: Record<Vehicle, SkyKind> = {
-  car: "car",
-  motorcycle: "moto",
-  unknown: "mist",
-};

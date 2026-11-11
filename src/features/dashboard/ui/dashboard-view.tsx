@@ -21,7 +21,7 @@ import { HourlyChartCard } from "./hourly-chart-card";
 import { NextDaysCard } from "./next-days-card";
 import { NowCard } from "./now-card";
 import { RefreshButton } from "./refresh-button";
-import { SKY_FOR } from "./risk-style";
+import { inkTone, sceneFor } from "./scene";
 import { Sky } from "./sky";
 import { TripsCard } from "./trips-card";
 import { WeekCard } from "./week-card";
@@ -47,7 +47,12 @@ export function DashboardView({
   offline?: boolean;
 }) {
   const t = useTranslations("dashboard");
-  const sky = SKY_FOR[view.vehicle];
+  const scene = sceneFor(
+    view.now[0].weatherCode,
+    view.vehicle,
+    now,
+    view.now[0].temperature,
+  );
   const max = view.hourly.home.map((h, i) => {
     const w = view.hourly.work[i] ?? null;
     return h === null || w === null ? null : Math.max(h, w);
@@ -61,9 +66,8 @@ export function DashboardView({
       : t("offline", { when: fetchedWhen(view.fetchedAt, now, locale, t) });
 
   return (
-    <div data-sky={sky}>
-      <Sky kind={sky} />
-
+    <div data-sky={inkTone(scene)}>
+      <Sky scene={scene} />
       <header className="flex items-center justify-between gap-3 pt-[1.125rem] pb-1.5 text-hero">
         <div className="min-w-0">
           <p className="text-title font-semibold tabular">
@@ -128,6 +132,7 @@ export function DashboardView({
         <Hero
           className="pb-3 lg:col-span-7 lg:pb-2"
           vehicle={view.vehicle}
+          scene={scene}
           chip={t(`chip.${view.vehicle}`)}
           verdict={t(`verdict.${view.vehicle}`)}
           reason={renderReason(view.reason, t)}

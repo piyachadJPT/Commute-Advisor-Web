@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./weather-fx.css";
 
 /*
  * Expose tokens to Tailwind. The default palette, radii, shadows and font sizes are
@@ -41,6 +42,15 @@
   --color-scene-cloud-back: var(--scene-cloud-back);
   --color-scene-rain: var(--scene-rain);
   --color-scene-sun: var(--scene-sun);
+  --color-scene-sun-ray: var(--scene-sun-ray);
+  --color-scene-sun-low: var(--scene-sun-low);
+  --color-scene-moon: var(--scene-moon);
+  --color-scene-moon-crater: var(--scene-moon-crater);
+  --color-scene-moon-glow: var(--scene-moon-glow);
+  --color-scene-star: var(--scene-star);
+  --color-scene-cloud-dark: var(--scene-cloud-dark);
+  --color-scene-cloud-dark-back: var(--scene-cloud-dark-back);
+  --color-scene-bolt: var(--scene-bolt);
 
   --font-*: initial;
   --font-sans:
@@ -111,7 +121,7 @@
   }
 }
 
-/* Per-verdict sky ink, set on the page root with data-sky (plan §12.1, §12.3) */
+/* Sky ink, set on the page root with data-sky from the weather scene (plan §12.1, §12.3) */
 @layer base {
   :root,
   [data-sky="moto"] {
@@ -154,15 +164,6 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-}
-
-/* Fine rain streaks over the sky, only on rainy (car) days */
-@utility rain-streaks {
-  background-image: repeating-linear-gradient(
-    104deg,
-    transparent 0 22px,
-    var(--rain-streak) 22px 23px
-  );
 }
 
 /*

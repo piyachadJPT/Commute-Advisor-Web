@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icon";
 import type { Vehicle } from "@/features/commute/domain/types";
-import { SKY_FOR, VEHICLE_STYLE } from "./risk-style";
+import { VEHICLE_STYLE } from "./risk-style";
+import type { Scene } from "./scene";
 import { WeatherScene } from "./weather-scene";
 
 type HeroProps = {
   vehicle: Vehicle;
+  scene: Scene;
   chip: string;
   verdict: string;
   reason: ReactNode;
@@ -16,6 +18,7 @@ type HeroProps = {
 /** Verdict directly on the sky, no card (§11.2, §12.1). */
 export function Hero({
   vehicle,
+  scene,
   chip,
   verdict,
   reason,
@@ -48,7 +51,7 @@ export function Hero({
         </p>
       </div>
       <div className="-mr-[6px] [grid-area:scene]">
-        <WeatherScene kind={SKY_FOR[vehicle]} dimmed={dimmed} />
+        <WeatherScene scene={scene} dimmed={dimmed} />
       </div>
     </section>
   );

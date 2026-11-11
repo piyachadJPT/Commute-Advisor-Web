@@ -55,7 +55,52 @@
   --sky-moto: linear-gradient(175deg, #4f9fdc 0%, #94c8ef 48%, #f2dcc2 100%);
   --sky-mist: linear-gradient(175deg, #7c8b9b 0%, #aab6c2 50%, #d7dde3 100%);
   --sky-fallback: #5d7895;
-  --rain-streak: rgb(255 255 255 / 0.09);
+  --sky-day-clear: var(--sky-moto);
+  --sky-day-grey: var(--sky-mist);
+  --sky-day-rain: var(--sky-car);
+  --sky-day-storm: linear-gradient(
+    175deg,
+    #26323f 0%,
+    #46586b 45%,
+    #7488a0 100%
+  );
+  --sky-day-hot: linear-gradient(175deg, #2f86d4 0%, #8cc4ee 45%, #ffd79a 100%);
+  --sky-dawn-clear: linear-gradient(
+    175deg,
+    #34457c 0%,
+    #9a6a9c 48%,
+    #ffb886 100%
+  );
+  --sky-dusk-clear: linear-gradient(
+    175deg,
+    #232f63 0%,
+    #7a4f8c 48%,
+    #f08a64 100%
+  );
+  --sky-night-clear: linear-gradient(
+    175deg,
+    #071329 0%,
+    #10264d 55%,
+    #2a4673 100%
+  );
+  --sky-night-grey: linear-gradient(
+    175deg,
+    #0f1620 0%,
+    #1f2a37 55%,
+    #34414f 100%
+  );
+  --sky-night-rain: linear-gradient(
+    175deg,
+    #0a121c 0%,
+    #142233 50%,
+    #22354a 100%
+  );
+  --sky-night-storm: linear-gradient(
+    175deg,
+    #05080d 0%,
+    #0e1622 55%,
+    #1a2736 100%
+  );
 
   --hero-car: #ffffff;
   --hero-car-2: #ffffff;
@@ -70,6 +115,15 @@
   --scene-cloud-back: rgb(255 255 255 / 0.55);
   --scene-rain: rgb(196 228 255 / 0.95);
   --scene-sun: #ffd77a;
+  --scene-sun-ray: #ffe9b0;
+  --scene-sun-low: #ff9a55;
+  --scene-moon: #f6f1dc;
+  --scene-moon-crater: rgb(190 184 160 / 0.55);
+  --scene-moon-glow: rgb(246 241 220 / 0.22);
+  --scene-star: #ffffff;
+  --scene-cloud-dark: rgb(96 112 132 / 0.96);
+  --scene-cloud-dark-back: rgb(78 92 112 / 0.7);
+  --scene-bolt: #ffe27a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -111,7 +165,18 @@
     --sky-moto: linear-gradient(175deg, #081a33 0%, #17345e 55%, #3d5a7e 100%);
     --sky-mist: linear-gradient(175deg, #0f141b 0%, #1d252f 55%, #2c3540 100%);
     --sky-fallback: #142233;
-    --rain-streak: rgb(255 255 255 / 0.05);
+    --sky-day-hot: linear-gradient(
+      175deg,
+      #14263f 0%,
+      #3a4a60 55%,
+      #7a5f48 100%
+    );
+    --sky-day-storm: linear-gradient(
+      175deg,
+      #0b1118 0%,
+      #1a2532 50%,
+      #2f4052 100%
+    );
 
     --hero-car: #eef4fa;
     --hero-car-2: #b8c7d6;
@@ -126,6 +191,12 @@
     --scene-cloud-back: rgb(226 236 246 / 0.4);
     --scene-rain: rgb(140 196 242 / 0.95);
     --scene-sun: #f5c86a;
+    --scene-sun-ray: #f8dc96;
+    --scene-moon: #e9e6d6;
+    --scene-moon-crater: rgb(150 148 130 / 0.55);
+    --scene-moon-glow: rgb(233 230 214 / 0.16);
+    --scene-cloud-dark: rgb(62 76 94 / 0.96);
+    --scene-cloud-dark-back: rgb(48 60 76 / 0.7);
   }
 }
 
