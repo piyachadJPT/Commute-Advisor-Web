@@ -130,7 +130,7 @@
   "auth": {
     "app": "Commute Advisor",
     "title": "Sign in",
-    "intro": "Enter your email and we will send a 6-digit code. No password needed.",
+    "intro": "Enter your email and we will send you a code. No password needed.",
     "closed": "This is a private app and sign-up is closed. If this email has an account, the code arrives within a few minutes.",
     "email": {
       "label": "Email",
@@ -139,7 +139,7 @@
       "sending": "Sending code"
     },
     "code": {
-      "label": "6-digit code",
+      "label": "Code from the email",
       "hint": "Sent to {email}. The code is valid for 10 minutes.",
       "submit": "Sign in",
       "verifying": "Checking code",

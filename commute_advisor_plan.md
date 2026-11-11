@@ -812,14 +812,16 @@ Validate all of them with Zod at startup (`src/lib/env.ts`). The build fails if 
 
 ### 14.3 Authentication
 
-- Supabase Auth with a **6-digit email OTP code** valid for **10 minutes**, not a magic link. On iOS a magic link opens in Safari, and Safari's session is not shared with the installed Home Screen app. A code typed inside the app avoids this.
+- Supabase Auth with an **email OTP code** valid for **10 minutes**, not a magic link. The code length is decided by Supabase, not by the app: hosted projects send **8 digits** by default and `config.toml` (`otp_length`) is set to 8 locally to match. The sign-in form accepts 6–8 digits (`OTP_DIGITS` in `src/features/auth/state.ts`), so it works with either, and its text never states a number. On iOS a magic link opens in Safari, and Safari's session is not shared with the installed Home Screen app. A code typed inside the app avoids this.
 - Public sign-up is disabled. The owner's account is created through an invite from the Supabase dashboard.
 - Sessions use refresh tokens, so the user rarely needs to sign in again. Session cookies are set only by the server and are `HttpOnly`, `SameSite=Lax` and `Secure` in production. The app does not use the Supabase browser client.
 - An unknown email gets the same "code sent" screen as a real one, so the form cannot be used to find out which emails have an account.
 - **Hosted project checklist (staging and production), none of which `supabase db push` applies:**
   - Authentication → Sign In / Providers → turn **off** "Allow new users to sign up". If it stays on, anyone can create an account by calling the Auth API directly, because `shouldCreateUser: false` only protects this app's form.
-  - Set the Email OTP expiration to 600 seconds.
+  - Set the Email OTP expiration to 600 seconds. Leave the Email OTP length at the hosted default (8): a longer code is harder to guess, and the app accepts 6–8.
   - Make the Magic Link email template show `{{ .Token }}` (copy `supabase/templates/magic_link.html`). Since June 2026 a Free project on the default SMTP cannot customise email templates, and the default email may contain only a link. Set up custom SMTP (Resend, Brevo or similar, free tiers exist) first. The default SMTP also sends only to organisation members and at a very low rate.
+    - Gmail SMTP needs an **App password** (Google Account → Security → 2-Step Verification → App passwords), not the account password. With the account password Gmail answers `534 5.7.9 Application-specific password required` and the app shows "the email could not be sent". Keep the App password only in the Supabase SMTP Password field, never in `.env` or the repo, and ideally use a dedicated Gmail account for the app.
+    - Browsers and password managers may autofill the **Subject** and **Password** fields of these dashboard forms with saved values (a phone number once landed in the Subject). Check both fields before saving.
   - Set Site URL and the redirect allow-list to the production URL.
   - Invite the owner from the dashboard.
 

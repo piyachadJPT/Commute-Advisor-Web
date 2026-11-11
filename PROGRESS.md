@@ -9,7 +9,7 @@
 | Phase | สถานะ | หมายเหตุ |
 |---|---|---|
 | 1 Foundation & Visual Direction | เสร็จ | commit แล้ว ทิศทาง UI = "Sky ambient" (อนุมัติแล้ว) |
-| 2 Supabase & Auth | เสร็จบน local, **ยังไม่ commit** | เหลือส่วนที่ต้องทำบนโปรเจกต์จริง (ดู "ค้างอยู่") |
+| 2 Supabase & Auth | เสร็จ, migration อยู่บนโปรเจกต์จริงแล้ว, **ยังไม่ commit** | เหลือตั้งค่า Auth ใน Dashboard (ดู "ค้างอยู่") |
 | 3 Weather Integration | ยังไม่เริ่ม | |
 | 4 Commute Engine | ยังไม่เริ่ม | |
 | 5 User Interface | ยังไม่เริ่ม | หน้า Weather/History/Settings ยังเป็นหน้าชั่วคราว |
@@ -24,7 +24,7 @@
 supabase start                      # local stack (ดึง image ครั้งแรกใช้เวลา)
 cp .env.example .env.local          # ใส่ URL กับ publishable key จาก `supabase status -o env`
 npm run dev:user -- you@example.test   # สร้างผู้ใช้ local (ปิดสมัครสาธารณะ จึงสมัครเองไม่ได้)
-npm run dev                         # http://localhost:3000/login  (รหัส 6 หลักอยู่ใน Mailpit http://127.0.0.1:54324)
+npm run dev                         # http://localhost:3000/login  (รหัสอยู่ใน Mailpit http://127.0.0.1:54324)
 ```
 
 | คำสั่ง | ทำอะไร |
@@ -54,7 +54,7 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - สร้างแถว `settings` อัตโนมัติเมื่อมีผู้ใช้ใหม่
 
 **Auth** (`src/proxy.ts`, `src/features/auth/`, `src/lib/supabase/`)
-- ล็อกอินด้วยรหัส OTP 6 หลักทางอีเมล (อายุ 10 นาที) ไม่มีรหัสผ่าน ปิดสมัครสาธารณะ
+- ล็อกอินด้วยรหัส OTP ทางอีเมล (อายุ 10 นาที) ไม่มีรหัสผ่าน ปิดสมัครสาธารณะ ความยาวรหัส Supabase เป็นคนกำหนด (โปรเจกต์จริงส่ง **8 หลัก**) ฟอร์มรับ 6–8 หลัก และข้อความในหน้าจอไม่ระบุตัวเลข
 - `proxy.ts` รีเฟรช session ด้วย `getClaims()`, redirect ไป `/login?next=...`, ตอบ 401 กับ `/api/*`, ปล่อย `/api/jobs/*` (ใช้ secret ของมันเอง)
 - cookie session เป็น HttpOnly, SameSite=Lax, Secure บน production
 - อีเมลที่ไม่มีในระบบเห็นหน้ากรอกรหัสเหมือนอีเมลจริง (กันการไล่ดูว่าใครมีบัญชี)
@@ -68,20 +68,29 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - policy มีเฉพาะการกระทำที่แอปใช้จริง (เช่น `notification_logs` ผู้ใช้อ่านได้อย่างเดียว)
 - ชื่อ env: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ไม่ใช่ `..._ANON_KEY`)
 - ลบ Supabase browser client (ไม่ได้ใช้ และ cookie HttpOnly แล้วอ่านจากฝั่งเบราว์เซอร์ไม่ได้)
+- ความยาวรหัส OTP: แก้บั๊กที่ผมฝังไว้ว่า 6 หลัก (โปรเจกต์จริงส่ง 8 หลักจึงกรอกไม่ได้) ตอนนี้รับ 6–8 หลัก `otp_length` ใน `config.toml` ตั้งเป็น 8 ให้ตรงกับของจริง (มีผลเมื่อรีสตาร์ต local stack)
 - `@types/node` ปรับเป็น `^22` ให้ตรง Node 22 และ Vitest 5.1.0
 - `src/lib/env.ts` ตรวจเฉพาะตัวแปร public ตอนนี้ ตัวแปรฝั่ง server (service-role key, `JOB_SECRET`, `CRON_SECRET`, VAPID, `APP_URL`) จะเพิ่มใน phase ที่เริ่มใช้
 
 ## ค้างอยู่ (ต้องให้คนทำ)
 
-1. สร้างโปรเจกต์ Supabase **staging และ production** ที่ Singapore แล้ว `supabase link` จากนั้น push migration (ผมจะไม่ push ขึ้นของจริงเองถ้าคุณไม่สั่ง)
-2. **ปิด "Allow new users to sign up"** บนโปรเจกต์จริง ถ้าเปิดค้างไว้ ใครก็สมัครได้ผ่าน Auth API โดยตรง `supabase db push` ไม่ตั้งค่านี้ให้
-3. ตั้ง **custom SMTP** (Resend/Brevo มีแพ็กฟรี) แล้วใส่เทมเพลต `supabase/templates/magic_link.html` ที่แสดง `{{ .Token }}` Free plan กับ SMTP เริ่มต้นแก้เทมเพลตไม่ได้ และอีเมลเริ่มต้นอาจมีแต่ลิงก์ ไม่มีรหัส ล็อกอินด้วยรหัสบนของจริงจะใช้ไม่ได้ถ้าไม่ทำข้อนี้
+1. ~~ลิงก์โปรเจกต์และ push migration~~ **ทำแล้ว (2026-11-11):** ลิงก์ `uldlezmtxzflnwpcfrvr` (CLI ระบุว่าเป็น **production**) และ push 3 migration สำเร็จ ตรวจแล้ว: 8 ตาราง RLS ครบ, `anon` อ่านไม่ได้, cron `retention` active, trigger 3 ตัวอยู่ครบ
+   - ยังไม่มีโปรเจกต์ **staging** (แผน §14.1 ต้องการแยก) ตอนนี้ทุกอย่างอยู่บน production ที่เดียว สร้าง staging แล้ว `supabase link` ใหม่ก่อน push รอบถัดไป
+   - CLI v3 ชี้ local เป็นค่าเริ่มต้น: `supabase db push` เฉยๆ ไม่ได้แตะของจริง ต้องใส่ `--remote` และคำสั่ง query ฝั่ง remote ต้องมี `--read-only`
+   - advisor ฝั่ง remote เตือน WARN เดียว: `get_scheduler_health()` เป็น SECURITY DEFINER ที่ `authenticated` เรียกได้ **ตั้งใจ** (คืนแค่เวลา tick ล่าสุด มีเช็ก `auth.uid()` และตัด anon แล้ว) รับความเสี่ยงนี้ไว้
+2. ~~ปิด "Allow new users to sign up"~~ **ทำแล้วและตรวจแล้ว (2026-11-11):** `GET /auth/v1/settings` ตอบ `disable_signup: true`, anonymous sign-ins ปิด
+3. ~~ตั้ง custom SMTP และเทมเพลตที่แสดง `{{ .Token }}`~~ **ใช้ได้แล้ว (2026-11-11):** ใช้ Gmail SMTP ด้วย App password (ครั้งแรกล้มด้วย `534 Application-specific password required` เพราะใส่รหัสผ่านปกติ) อีเมลถึงกล่องจดหมายและมีรหัส 8 หลักแล้ว ควรเช็กว่า Subject ของเทมเพลตไม่ใช่ค่าที่เบราว์เซอร์เติมเอง (ครั้งหนึ่งเป็นเบอร์โทร)
 4. ตั้ง Email OTP expiration เป็น 600 วินาที, ตั้ง Site URL และ redirect allow-list เป็น URL production, เชิญเจ้าของจาก dashboard
+   - OTP expiration 600 วินาที ผู้ใช้แจ้งว่าตั้งแล้ว แต่ตรวจจากภายนอกไม่ได้
+   - **ยังไม่ได้ยืนยันว่าล็อกอินจนเข้าหน้าหลักได้บนโปรเจกต์จริง** หลังแก้เรื่องความยาวรหัส ต้องลองกรอกรหัส 8 หลักจากอีเมลอีกครั้ง
+   - Site URL ยังเป็น `http://localhost:3000` ให้เปลี่ยนเป็น URL จริงหลัง deploy บน Vercel
 5. ลิงก์ Vercel project กับ preview deployments (Phase 1 ยังค้าง)
 6. ตัดสินใจว่าจะถอดแพ็กเกจที่ไม่ได้ใช้ออกหรือไม่: `@tanstack/react-query`, `react-hook-form`, `@hookform/resolvers`, `lucide-react`
 
 ## ปัญหาที่รู้และข้อควรระวัง
 
+- **`.env` บรรทัดที่ 4 ผิดรูปแบบ** (ข้อความที่ไม่ใช่ `ชื่อ=ค่า` ซึ่งตรงกับลักษณะ App password ที่เผลอวาง) ทำให้ Supabase CLI ล้มทุกคำสั่งที่โหลด config (`start`, `stop`, `status`, `db push`) ด้วย `failed to parse environment file` ผู้ใช้ต้องลบบรรทัดนั้นเอง (และถ้าเป็นรหัสลับ ควร revoke แล้วสร้างใหม่) `supabase logs --remote` ยังใช้ได้
+- ตอนนี้ Docker ปิดอยู่ local stack จึงไม่ทำงาน เปิด Docker แล้ว `supabase start` ก่อนรัน `npm test`
 - ฟอร์มล็อกอินเคยรีเซ็ตทั้งก้อนหนึ่งครั้งหลังส่งอีเมลสำเร็จ ทำซ้ำอีก 14 รอบไม่เกิดอีก ถ้าเจออีกให้ดูว่า cookie ที่ Server Action ตั้งทำให้หน้ารีเฟรชแล้ว state ใน Suspense หายหรือไม่
 - ทดสอบ rate limit (429) บน local ไม่ได้ เพราะ `max_frequency = 1s` ใน `config.toml` (ของจริง 60 วินาที) ครอบด้วย unit test แบบ mock แล้ว
 - cookie `Secure` บน `next start` ที่ `http://localhost` ใช้ได้ใน Chrome แต่ Safari อาจไม่รับ

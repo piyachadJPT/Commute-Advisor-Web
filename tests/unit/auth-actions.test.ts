@@ -124,7 +124,19 @@ describe("submitAuth: verify the code", () => {
     );
   });
 
-  it.each(["", "12345", "1234567", "12345a", "١٢٣٤٥٦"])(
+  it.each(["123456", "1234567", "12345678"])(
+    "accepts a %s-digit code (Supabase decides the length; hosted projects send 8)",
+    async (code) => {
+      await expect(verify({ code })).rejects.toThrow("REDIRECT:/");
+      expect(verifyOtp).toHaveBeenCalledWith({
+        email: "owner@example.test",
+        token: code,
+        type: "email",
+      });
+    },
+  );
+
+  it.each(["", "12345", "123456789", "12345a", "123 456", "١٢٣٤٥٦"])(
     "rejects the malformed code %j without calling Supabase",
     async (code) => {
       const state = await verify({ code });

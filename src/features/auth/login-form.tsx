@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import { submitAuth } from "./actions";
-import { initialAuthState } from "./state";
+import { initialAuthState, OTP_DIGITS } from "./state";
 
 const RESEND_SECONDS = 60; // Supabase allows one code per user per minute
 
@@ -79,14 +79,13 @@ export function LoginForm({ next }: { next: string }) {
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
+                pattern={`[0-9]{${OTP_DIGITS.min},${OTP_DIGITS.max}}`}
+                maxLength={OTP_DIGITS.max}
                 required
                 autoFocus
-                placeholder="000000"
                 aria-invalid={state.error === "invalidCode"}
                 aria-describedby={state.error ? errorId : "code-hint"}
-                className={`${input} text-center text-numeral tracking-[0.35em] tabular`}
+                className={`${input} text-center text-headline tracking-[0.3em] tabular`}
               />
               <p id="code-hint" className="mt-1.5 text-caption text-ink-3">
                 {t("code.hint", { email: state.email })}

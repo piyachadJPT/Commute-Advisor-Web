@@ -235,10 +235,11 @@ secure_password_change = false
 # require_current_password = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
-# Number of characters used in the email OTP.
-otp_length = 6
-# Number of seconds before the email OTP expires. 10 minutes: a 6-digit code is only 10^6
-# guesses, so a short life narrows the window for guessing (also set it in the hosted dashboard).
+# Number of characters used in the email OTP. 8 to match hosted projects (their default), so
+# local development catches code-length assumptions. The app accepts 6–8 digits.
+otp_length = 8
+# Number of seconds before the email OTP expires. 10 minutes: a numeric code has few possible
+# values, so a short life narrows the window for guessing (also set it in the hosted dashboard).
 otp_expiry = 600
 
 # Use a production-ready SMTP server
@@ -251,7 +252,7 @@ otp_expiry = 600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# The sign-in email must show the 6-digit code, not only a link (plan §14.3): on iOS a link opens
+# The sign-in email must show the code, not only a link (plan §14.3): on iOS a link opens
 # Safari, whose session is not shared with the installed Home Screen app.
 [auth.email.template.magic_link]
 subject = "รหัสเข้าสู่ระบบ Commute Advisor / Your sign-in code"

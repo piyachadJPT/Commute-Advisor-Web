@@ -4,20 +4,20 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/supabase/server";
-import { initialAuthState, type AuthState } from "./state";
+import { initialAuthState, OTP_DIGITS, type AuthState } from "./state";
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 const codeSchema = z
   .string()
   .trim()
-  .regex(/^\d{6}$/);
+  .regex(new RegExp(`^\\d{${OTP_DIGITS.min},${OTP_DIGITS.max}}$`));
 
 const text = (value: FormDataEntryValue | null) =>
   typeof value === "string" ? value : "";
 
 /**
  * One action for both steps of email-code sign-in (plan §14.3): `intent=request` emails a
- * 6-digit code, `intent=verify` checks it and starts the session.
+ * one-time code, `intent=verify` checks it and starts the session.
  *
  * Public sign-up is disabled, so `shouldCreateUser: false`. An unknown address gets the same
  * "code sent" screen as a real one: the form must not reveal which emails have an account.
