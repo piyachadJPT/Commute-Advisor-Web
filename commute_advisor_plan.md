@@ -1034,21 +1034,21 @@ An ESLint `no-restricted-imports` rule enforces that `src/features/commute` impo
 
 ### Phase 3 — Weather Integration
 
-- [ ] Open-Meteo client with Zod DTOs and 429 backoff.
-- [ ] `forecastSyncService` with the refresh policy and sync logs.
-- [ ] `/api/geocode` route and the location picker data flow.
-- [ ] `update_location` with rounding and purge.
-- [ ] Tests for null and missing fields and for API failures.
+- [x] Open-Meteo client with Zod DTOs and 429 backoff.
+- [x] `forecastSyncService` with the refresh policy and sync logs.
+- [x] `/api/geocode` route. (The picker UI and its 400 ms debounce are built in Phase 5.)
+- [x] `update_location` with rounding and purge.
+- [x] Tests for null and missing fields and for API failures.
 
 **Exit criteria:** The server fetches and stores forecasts for both configured locations.
 
 ### Phase 4 — Commute Engine
 
-- [ ] Port every v1.1 test case to Vitest first (§16.1, §16.5). The expected behaviour is already defined.
-- [ ] Window mapper (§5.1), two-location analysis (§5.2), decision (§5.3), labels and freshness.
-- [ ] Commute schedule, target date (§5.6) and skip days.
-- [ ] Locking (§5.7) with the database trigger.
-- [ ] Structured reasons and localized rendering.
+- [x] Port every v1.1 test case to Vitest first (§16.1, §16.5). The expected behaviour is already defined.
+- [x] Window mapper (§5.1), two-location analysis (§5.2), decision (§5.3), labels and freshness.
+- [x] Commute schedule, target date (§5.6) and skip days.
+- [x] Locking (§5.7) with the database trigger.
+- [x] Structured reasons and localized rendering.
 
 **Exit criteria:** The same inputs and clock always produce the same tested result, in either host timezone.
 

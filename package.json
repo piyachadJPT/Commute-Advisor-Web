@@ -15,6 +15,7 @@
     "db:reset": "supabase db reset",
     "test": "vitest run",
     "test:db": "vitest run tests/db",
+    "test:tz": "TZ=UTC vitest run tests/unit && TZ=Asia/Bangkok vitest run tests/unit",
     "dev:user": "node scripts/dev-user.mjs"
   },
   "dependencies": {

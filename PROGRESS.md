@@ -9,9 +9,9 @@
 | Phase | สถานะ | หมายเหตุ |
 |---|---|---|
 | 1 Foundation & Visual Direction | เสร็จ | commit แล้ว ทิศทาง UI = "Sky ambient" (อนุมัติแล้ว) |
-| 2 Supabase & Auth | เสร็จ, migration อยู่บนโปรเจกต์จริงแล้ว, **ยังไม่ commit** | เหลือตั้งค่า Auth ใน Dashboard (ดู "ค้างอยู่") |
-| 3 Weather Integration | ยังไม่เริ่ม | |
-| 4 Commute Engine | ยังไม่เริ่ม | |
+| 2 Supabase & Auth | เสร็จ, commit แล้ว, migration อยู่บนโปรเจกต์จริงแล้ว | เหลือตั้งค่า Auth ใน Dashboard (ดู "ค้างอยู่") |
+| 3 Weather Integration | เสร็จ, **ยังไม่ commit** | ยืนยันกับ Supabase จริงแล้ว (ผู้ใช้ตรวจตาราง 2026-11-11) |
+| 4 Commute Engine | เสร็จ (เฉพาะโมดูลบริสุทธิ์), **ยังไม่ commit** | ยังไม่ต่อกับ DB/UI (Phase 5–6) |
 | 5 User Interface | ยังไม่เริ่ม | หน้า Weather/History/Settings ยังเป็นหน้าชั่วคราว |
 | 6 Scheduler, Push & PWA | ยังไม่เริ่ม | |
 | 7 Final Testing & Release | ยังไม่เริ่ม | |
@@ -31,6 +31,7 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 |---|---|
 | `npm test` | เทสต์ทั้งหมด (ต้อง `supabase start` ก่อน ไม่งั้นเทสต์ DB ข้าม) |
 | `npm run test:db` | เฉพาะเทสต์ DB/RLS |
+| `npm run test:tz` | เทสต์ unit ซ้ำทั้ง `TZ=UTC` และ `TZ=Asia/Bangkok` (ไม่ต้องใช้ Docker) |
 | `npm run db:reset` | apply migration ใหม่จากฐานว่าง |
 | `npm run db:types` | generate `src/lib/database.types.ts` จาก schema |
 | `npm run typecheck` / `lint` / `build` | ตรวจก่อนปิดงาน |
@@ -100,23 +101,50 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - ยังไม่มี security headers/CSP (แผนกำหนดไว้ §14.4 ทำใน Phase 7)
 - ยังไม่ทำ: คืนตำแหน่ง scroll เมื่อสลับแท็บ (§10.2), guard ไป `/onboarding` (หน้า onboarding ยังไม่มี), ภาพประกอบ hero เป็น SVG ชั่วคราว (ไม่ใช่ Lottie)
 
-## ทำต่อ: Phase 3 — Weather Integration
+## Phase 3 — สิ่งที่ทำ
 
-เป้าหมาย: เซิร์ฟเวอร์ดึงและเก็บพยากรณ์ของบ้านและที่ทำงานได้ (แผน §4, §18)
+**เทสต์ unit ใหม่ 98 ข้อ** ใน `tests/unit/forecast/` ผ่านทั้ง UTC และ Asia/Bangkok, `typecheck`/`lint`/`build` ผ่าน และลองยิง Open-Meteo จริงแล้ว (72 แถว, geocode ภาษาไทย, คำค้นไม่มีผลลัพธ์ไม่ error)
 
-ก่อนเริ่ม: ให้ push migration ขึ้นโปรเจกต์จริงตามข้อ "ค้างอยู่" 1 หรือทำบน local ไปก่อนก็ได้ (Phase 3 ไม่ต้องมี SMTP)
+- `src/lib/supabase/service.ts` service-role client (`server-only`) และ `src/lib/env.server.ts` ตรวจ `SUPABASE_SERVICE_ROLE_KEY` แบบ lazy ตอนเรียกใช้ ไม่ทำให้ build ล้มถ้ายังไม่ตั้ง
+- `src/features/forecast/data/openMeteoSchema.ts` และ `openMeteoClient.ts`: timeout 15 วินาที, retry เฉพาะ 429 (สูงสุด 3 ครั้ง, รอ 1s/2s หรือ `Retry-After` ไม่เกิน 10s), error อื่นไม่ retry (tick ถัดไปลองใหม่) ค่า null/หาย/นอกช่วง → null ไม่เคยเป็น 0 เวลาแปลงเป็น UTC ด้วย `utc_offset_seconds` ไม่พึ่ง timezone ของเครื่อง
+- `domain/refreshPolicy.ts` (บริสุทธิ์): ข้ามถ้า < 15 นาทีทุก trigger, scheduled ทุก 60 นาทีช่วง 05:00–19:59 และทุก 3 ชั่วโมงนอกช่วง, manual และ pre_notification ใช้แค่กฎ 15 นาที
+- `forecastSyncService.ts`: sync บ้านและที่ทำงานแยกกัน ล้มข้างหนึ่งอีกข้างยังบันทึก ข้อมูลเสียไม่เขียนแถว (เขียนแค่ log `failed`) `location_changed` จาก DB ถูกรายงานแยก
+- `forecastRepo.ts` (`save_forecast_batch`, อ่าน fetch ล่าสุด, อ่านรายชั่วโมง), `settingsRepo.ts` (`update_location`, อ่านตำแหน่ง)
+- `geocodingClient.ts` และ `/api/geocode` (ตรวจ session ซ้ำ, `q` ยาว 2–100 ตัวอักษร, ภาษาตาม locale, 502 เมื่อ Open-Meteo ล่ม)
 
-1. `src/lib/supabase/service.ts` ไคลเอนต์ service-role ใส่ `import 'server-only'` และเพิ่ม `SUPABASE_SERVICE_ROLE_KEY` ใน `env.ts` (ฝั่ง server เท่านั้น)
-2. `openMeteoClient`: Zod schema ของ response, `AbortSignal.timeout(15000)`, backoff เมื่อได้ 429 (สูงสุด 3 ครั้งต่อ tick), จัดการ null และ field ที่หาย ตรวจความหมาย "preceding hour" ของ Open-Meteo อีกครั้งแล้วบันทึกเป็นคอมเมนต์ข้างฟังก์ชัน mapping (§4.2)
-3. `forecastSyncService`: กฎ refresh (§4.6) ข้ามถ้า fetch สำเร็จล่าสุดไม่ถึง 15 นาที, ทุก 60 นาทีช่วง 05:00–20:00 และทุก 3 ชั่วโมงนอกช่วงนั้น, แต่ละตำแหน่ง sync แยกกัน, บันทึกผ่าน `save_forecast_batch` (ฟังก์ชันและเทสต์มีแล้ว)
-4. `forecastRepo`, `settingsRepo` (ครอบ `update_location`): รับ Supabase client เป็นพารามิเตอร์ ไม่มี business rule
-5. `/api/geocode`: route handler ตรวจ session, validate response ด้วย Zod, ตั้ง `language` ตาม locale, ฝั่ง client debounce 400 ms และไม่เรียกถ้าพิมพ์น้อยกว่า 2 ตัวอักษร
-6. เทสต์ตาม §16.1: parse response ที่มี null/key หาย, API ล้มเหลว, 429, ตำแหน่งหนึ่งล้มอีกตำแหน่งยังบันทึกได้, ข้อมูลเสียห้ามทับ cache ที่ดี
-7. เกณฑ์ผ่าน: เซิร์ฟเวอร์ดึงและเก็บพยากรณ์ของทั้งสองตำแหน่งที่ตั้งค่าไว้ได้
+**การตัดสินใจที่ต่างจากแผน**
+- กฎ "ทุก 60 นาที" ให้ความคลาดเคลื่อนครึ่ง tick (5 นาที): ถ้า fetch เก่า ≥ 55 นาทีก็ถือว่าถึงเวลา (3 ชั่วโมง → 175 นาที) ไม่งั้น tick ที่เหลื่อมจะทำให้รอบจริงกลายเป็น ~70 นาที
+- log `skipped` เขียนเฉพาะ trigger `manual` และ `pre_notification` ส่วน scheduled ไม่เขียน เพราะข้ามเป็นส่วนใหญ่ทุก 10 นาที ถ้าเขียนจะมีแต่แถวขยะ
+- ผล semantics ที่ตรวจจากเอกสาร Open-Meteo (2026-11-11): precipitation, rain, showers, probability = "Preceding hour" (แถว T คือ (T−1h, T]), temperature/humidity/wind/weather_code = "Instant" บันทึกเป็นคอมเมนต์ที่ `mapForecast`
+- เอกสาร Open-Meteo ไม่ระบุรูปแบบ body ตอน 429 และไม่ระบุว่า array มี null ได้หรือไม่ โค้ดจึงดูแค่ status code และรับ null ได้
+
+**ยืนยันแล้ว:** sync จริงกับโปรเจกต์ Supabase ตัวเดียว (ไม่แยก staging ตามที่ผู้ใช้เลือก 2026-11-11) ข้อมูลลง `hourly_forecasts` และ `forecast_sync_logs` ครบ ส่วนเทสต์ DB (`npm run test:db`) ต้องใช้ local stack เท่านั้น ห้ามรันกับโปรเจกต์จริงเพราะเทสต์สร้างและลบผู้ใช้เอง
+
+**ค้างเล็กน้อย**
+- `.env.example` ถูกลบอยู่ใน working tree (ยังไม่ commit) ถ้าไม่ได้ตั้งใจลบให้ `git restore .env.example` แล้วเพิ่มบรรทัด `SUPABASE_SERVICE_ROLE_KEY=`
+- ฝั่ง client ของ location picker (debounce 400 ms) ทำใน Phase 5 พร้อมหน้า Settings ส่วน Server Action ปุ่มรีเฟรชต่อ `syncUserForecasts` ใน Phase 5 และ tick เรียกใน Phase 6
+- ตำแหน่งบ้านและที่ทำงานในฐานตอนนี้อาจเป็นพิกัดทดสอบทั่วไปในกรุงเทพ ต้องแก้เป็นของจริงตอนทำหน้า Settings
+
+## Phase 4 — สิ่งที่ทำ
+
+เทสต์ unit ใหม่ 91 ข้อ (`tests/unit/commute/`, `tests/unit/recommendations/`) ผ่านทั้ง UTC และ Asia/Bangkok, `typecheck` และ `lint` ผ่าน
+
+- `src/features/commute/domain/`: `tz` (Intl อย่างเดียว ไม่พึ่ง timezone เครื่อง), `windowMapper` (§5.1 ครบสามแถวบังคับ + ข้ามเที่ยงคืน + timezone ครึ่งชั่วโมง), `analyzer` (§5.2–5.3, ตาราง §16.5 ครบ), `labels`, `freshness`, `schedule` (วันเดินทาง, วันข้าม, target date §5.6), `reasons`, `locking` (`resolveRecommendation`, `returnWarning`), `recommend` (`computeRecommendation` ฟังก์ชันเดียวครบทั้ง engine)
+- `src/features/recommendations/reasonText.ts`: ข้อความเหตุผลล้วน TH/EN สำหรับ push และ History ส่วน Dashboard ยังเรนเดอร์จาก `messages/*.json` เหมือนเดิม
+- กฎ ESLint ใน `eslint.config.mjs`: engine ห้าม import next/react/@supabase/@/lib, ห้ามใช้ global ของเบราว์เซอร์, ห้ามเรียก `Date.now()` หรือ `new Date()` ที่ไม่มีอาร์กิวเมนต์ (ทดสอบแล้วว่าจับได้)
+
+**การตัดสินใจที่ต่างจากแผนหรือที่แผนไม่ได้ระบุ**
+- trip ที่ข้อมูลไม่ครบ ได้ `risk = null` (ไม่ใช่ค่าสูงสุดบางส่วน) และ `riskLevel = unknown` เพื่อไม่ให้เลขบางส่วนดูเหมือนคำตอบ
+- `rainMm` เป็น null ถ้าผลรวมของตำแหน่งใดตำแหน่งหนึ่งเป็น null (ไม่ใช้ค่าอีกตำแหน่งแทน)
+- ผลเสมอของความเสี่ยงระหว่างบ้านกับที่ทำงาน → บ้าน; ถ้าสองขาเกินเกณฑ์ทั้งคู่ เหตุผลระบุขาที่เสี่ยงสูงกว่า (เสมอ → ขาไป)
+- `freshness = none` ถ้าตำแหน่งใดยังไม่เคยดึง และ `forecastFetchedAt` เป็น null ในกรณีนั้น
+- ล็อกวันที่ข้อมูลไม่ครบ (unknown) ด้วย ตามแผน §5.7 (ถ้าไม่มีคำแนะนำตอนถึงเวลา การวิเคราะห์ครั้งแรกจะสร้างและล็อกทันที)
+- ฟังก์ชัน DB ล็อกอยู่แล้วจาก Phase 2 `resolveRecommendation` เป็นฝั่งแอปที่ตัดสินว่าจะเขียนอะไร
+
+**ยังไม่ทำ (อยู่ใน Phase ถัดไป):** `recommendationService` ที่อ่าน/เขียน DB, ตัวแปลงแถว DB → `HourlyWeather`, `commuteSchedule` ฝั่ง skipped_days repo, พฤติกรรม "ยังไม่มีพยากรณ์" ของวันเกินขอบเขตพยากรณ์ในหน้าจอ (engine ให้ผล unknown + hours ที่ขาดอยู่แล้ว)
 
 ## หลังจากนั้น
 
-- **Phase 4:** พอร์ตเคสทดสอบของ engine ก่อน (§5.1 สามแถวบังคับ, ตาราง §16.5), window mapper, analyzer, schedule, freshness, locking และ reason แบบมีโครงสร้าง ทดสอบทั้ง `TZ=UTC` และ `TZ=Asia/Bangkok`, ต้องเป็นโมดูลบริสุทธิ์ไม่ import next/react/supabase (ใส่กฎ ESLint `no-restricted-imports`)
 - **Phase 5:** onboarding, หน้า Weather/History/Settings จริง, ต่อ Dashboard เข้ากับข้อมูลจริง, ภาพ hero, icon และ manifest, Playwright visual snapshot และ design review gate (§12.5)
 - **Phase 6:** `/api/jobs/tick` และ `/api/jobs/daily`, pg_cron + pg_net + Vault, Web Push, service worker, offline snapshot
 - **Phase 7:** CI, Lighthouse, security headers/CSP, README, backup action
