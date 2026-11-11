@@ -83,6 +83,8 @@ export type UserSettings = {
   threshold: number;
   commuteDays: number;
   timeZone: string;
+  notificationTime: string; // "HH:mm"
+  onboardingCompleted: boolean;
   home: { name: string | null; isSet: boolean };
   work: { name: string | null; isSet: boolean };
 };
@@ -95,7 +97,7 @@ export async function getUserSettings(
   const { data, error } = await supabase
     .from("settings")
     .select(
-      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, home_latitude, home_name, work_latitude, work_name",
+      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, notification_time, onboarding_completed, home_latitude, home_name, work_latitude, work_name",
     )
     .eq("user_id", userId)
     .maybeSingle();
@@ -108,6 +110,8 @@ export async function getUserSettings(
     threshold: data.rain_threshold,
     commuteDays: data.commute_days,
     timeZone: data.timezone,
+    notificationTime: data.notification_time.slice(0, 5),
+    onboardingCompleted: data.onboarding_completed,
     home: { name: data.home_name, isSet: data.home_latitude !== null },
     work: { name: data.work_name, isSet: data.work_latitude !== null },
   };
@@ -149,4 +153,15 @@ export function toCommuteSettings(s: UserSettings): CommuteSettings {
     commuteDays: s.commuteDays,
     timeZone: s.timeZone,
   };
+}
+
+export async function markOnboardingCompleted(
+  supabase: Client,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .update({ onboarding_completed: true })
+    .eq("user_id", userId);
+  if (error) throw new Error(`settings update failed: ${error.message}`);
 }

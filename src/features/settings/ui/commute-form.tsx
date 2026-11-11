@@ -10,6 +10,8 @@ import { card, cardTitle, fieldLabel, input, primaryButton } from "./styles";
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type Props = {
+  /** Onboarding shows only times and days, and continues to the next step after saving. */
+  variant?: "settings" | "onboarding";
   departureTime: string;
   returnTime: string;
   durationMinutes: number;
@@ -22,6 +24,7 @@ type Props = {
  * uncontrolled fields after every form action, which would wipe the form after saving.
  */
 export function CommuteForm(initial: Props) {
+  const onboarding = initial.variant === "onboarding";
   const t = useTranslations("settings");
   const [state, action, pending] = useActionState(
     saveCommuteSettings,
@@ -35,6 +38,12 @@ export function CommuteForm(initial: Props) {
 
   return (
     <form action={action} className="space-y-6">
+      {onboarding ? (
+        <>
+          <input type="hidden" name="returnTo" value="onboarding" />
+          <input type="hidden" name="threshold" value={threshold} />
+        </>
+      ) : null}
       <section aria-labelledby="commute-title" className={card}>
         <h2 id="commute-title" className={cardTitle}>
           {t("commute.title")}
@@ -114,33 +123,37 @@ export function CommuteForm(initial: Props) {
         </fieldset>
       </section>
 
-      <section aria-labelledby="analysis-title" className={card}>
-        <h2 id="analysis-title" className={cardTitle}>
-          {t("analysis.title")}
-        </h2>
-        <label htmlFor="threshold" className={`${fieldLabel} mt-4`}>
-          {t("analysis.threshold")}
-          <span className="ml-2 font-semibold tabular-nums">{threshold}%</span>
-        </label>
-        <input
-          id="threshold"
-          name="threshold"
-          type="range"
-          min={10}
-          max={90}
-          step={5}
-          value={threshold}
-          onChange={(e) => setThreshold(Number(e.target.value))}
-          className="block min-h-11 w-full accent-primary"
-        />
-        <p className="mt-1 text-caption text-ink-3" aria-live="polite">
-          {t("analysis.preview", { value: threshold })}
-        </p>
-      </section>
+      {onboarding ? null : (
+        <section aria-labelledby="analysis-title" className={card}>
+          <h2 id="analysis-title" className={cardTitle}>
+            {t("analysis.title")}
+          </h2>
+          <label htmlFor="threshold" className={`${fieldLabel} mt-4`}>
+            {t("analysis.threshold")}
+            <span className="ml-2 font-semibold tabular-nums">
+              {threshold}%
+            </span>
+          </label>
+          <input
+            id="threshold"
+            name="threshold"
+            type="range"
+            min={10}
+            max={90}
+            step={5}
+            value={threshold}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+            className="block min-h-11 w-full accent-primary"
+          />
+          <p className="mt-1 text-caption text-ink-3" aria-live="polite">
+            {t("analysis.preview", { value: threshold })}
+          </p>
+        </section>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={pending} className={primaryButton}>
-          {pending ? t("saving") : t("save")}
+          {pending ? t("saving") : onboarding ? t("continue") : t("save")}
         </button>
         <p role="status" className="text-label">
           {state.status === "saved" ? t("saved") : null}

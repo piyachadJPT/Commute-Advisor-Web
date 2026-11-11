@@ -34,6 +34,10 @@ export async function saveCommuteSettings(
   }
   // Locked days are never recomputed (plan §5.7); the Dashboard analyses on read.
   revalidatePath("/", "layout");
+  // `returnTo` is compared, never followed: the destination is one of two fixed paths.
+  if (text(formData.get("returnTo")) === "onboarding") {
+    redirect("/onboarding?step=3");
+  }
   return { status: "saved" };
 }
 
@@ -73,5 +77,10 @@ export async function saveLocation(
     // Already logged by the sync service where possible; the save itself succeeded.
   }
   revalidatePath("/", "layout");
-  redirect("/settings"); // outside any try/catch: redirect() throws
+  // outside any try/catch: redirect() throws
+  redirect(
+    text(formData.get("returnTo")) === "onboarding"
+      ? "/onboarding?step=1"
+      : "/settings",
+  );
 }

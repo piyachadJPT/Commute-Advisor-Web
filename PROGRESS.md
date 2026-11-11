@@ -12,7 +12,7 @@
 | 2 Supabase & Auth | เสร็จ, commit แล้ว, migration อยู่บนโปรเจกต์จริงแล้ว | เหลือตั้งค่า Auth ใน Dashboard (ดู "ค้างอยู่") |
 | 3 Weather Integration | เสร็จ, commit แล้ว | ยืนยันกับ Supabase จริงแล้ว (ผู้ใช้ตรวจตาราง 2026-11-11) |
 | 4 Commute Engine | เสร็จ (เฉพาะโมดูลบริสุทธิ์), commit แล้ว | ยังไม่ต่อกับ DB/UI (Phase 5–6) |
-| 5 User Interface | **กำลังทำ** (Settings, Dashboard, Weather และ History ต่อข้อมูลจริงแล้ว ยังไม่ได้ลองในเบราว์เซอร์) | ไม่มี onboarding, ยังไม่ทำ hero/icon/manifest/snapshot |
+| 5 User Interface | **กำลังทำ** (Settings, Dashboard, Weather, History และ Onboarding ต่อข้อมูลจริงแล้ว ยังไม่ได้ลองในเบราว์เซอร์) | ยังไม่ทำ hero/icon/manifest/snapshot/design review |
 | 6 Scheduler, Push & PWA | ยังไม่เริ่ม | |
 | 7 Final Testing & Release | ยังไม่เริ่ม | |
 
@@ -183,10 +183,16 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - logic อยู่ใน `history/domain/buildHistory.ts` (บริสุทธิ์ มีเทสต์ 8 ข้อ) ขอบเขตเดือนใช้วันสุดท้ายจริง (Postgres ปฏิเสธ `2026-11-31`)
 - **ยังไม่ทำ:** day detail แบบ sheet ทับรายการ (intercepting route `@modal`) ตอนนี้เปิดเป็นหน้าเต็มเสมอ ซึ่งเป็นพฤติกรรมที่แผนกำหนดสำหรับการเข้าตรง
 
+**ทำแล้ว: Onboarding (ชิ้นที่ 5)** `typecheck`/`lint`/`build` ผ่าน เทสต์ 234 ข้อผ่านทั้งสอง timezone ยังไม่ได้เปิดดูในเบราว์เซอร์
+- `/onboarding?step=1|2|3` (นอกกลุ่ม `(app)` ไม่มีแถบเมนู): ขั้น 1 ตำแหน่งบ้านและที่ทำงาน (ใช้ตัวเลือกเดียวกับ Settings ผ่าน `/onboarding/location/[key]` แล้วกลับมาขั้น 1), ขั้น 2 เวลาและวันเดินทางพร้อมค่าเริ่มต้น (บันทึกแล้วไปขั้น 3), ขั้น 3 อธิบายข้อความแจ้งเตือนตอนเช้า
+- ข้ามได้ทุกขั้น และมี "ข้ามการตั้งค่า" ทุกหน้า ซึ่งตั้ง `onboarding_completed = true` ข้ามขั้น 1 แล้ว Dashboard แสดงการ์ดให้ไปตั้งตำแหน่ง
+- guard ใน `(app)/layout.tsx` ส่งผู้ใช้ใหม่ไป `/onboarding` ก่อนแสดงหน้าใดๆ **ต่างจากแผนเล็กน้อย:** ผู้ที่ตั้งตำแหน่งครบทั้งสองที่แล้วถือว่าตั้งค่าเสร็จแม้ธงเป็น false (เจ้าของที่ตั้งค่าไว้ก่อนมี onboarding จะไม่ถูกบังคับให้ผ่านอีก)
+- `returnTo` ของฟอร์มเป็นค่าจากรายการตายตัว (เทียบค่า ไม่ตามที่ผู้ใช้ส่งมา) จึงไม่เป็น open redirect
+- **ขั้นแจ้งเตือนยังเป็นหน้าอธิบาย** ระบุตรงๆ ว่ายังไม่เปิดใช้ การขอสิทธิ์ push และขั้นแนะนำ Add to Home Screen บน iPhone ทำใน Phase 6
+
 **ที่เหลือใน Phase 5 (ลำดับที่เสนอ)**
-1. Onboarding 3 ขั้น + guard ใน `(app)/layout` (ขั้นแจ้งเตือนรอ Phase 6)
-2. Icon/manifest, hero scene, Playwright snapshot และ design review gate (§12.5)
-3. day detail แบบ sheet (ถ้ายังต้องการ)
+1. Icon/manifest, hero scene (SVG ชั่วคราวเดิมอยู่), Playwright snapshot และ design review gate (§12.5)
+2. day detail แบบ sheet (ถ้ายังต้องการ), pull-to-refresh, แบนเนอร์ sync ล้มเหลว
 
 ## หลังจากนั้น
 

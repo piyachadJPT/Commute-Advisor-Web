@@ -205,7 +205,8 @@
       "saving": "Saving",
       "invalid": "Check the coordinates and try again",
       "failed": "Could not save. Try again."
-    }
+    },
+    "continue": "Continue"
   },
   "auth": {
     "app": "Commute Advisor",
@@ -277,6 +278,28 @@
       "dataLabel": "Forecast data",
       "complete": "All forecast hours available",
       "incomplete": "Some forecast hours were missing"
+    }
+  },
+  "onboarding": {
+    "progress": "Step {step} of {total}",
+    "continue": "Continue",
+    "skipStep": "Skip this step",
+    "skipAll": "Skip setup",
+    "finish": "Finish",
+    "locations": {
+      "title": "Set your home and work",
+      "body": "The forecast is fetched for both places, and each trip uses the higher chance of rain of the two."
+    },
+    "commute": {
+      "title": "Commute times and days",
+      "body": "These are the defaults. Change them if your commute differs."
+    },
+    "notifications": {
+      "title": "Morning notification",
+      "body": "On each commute day at {time} you get one message with the vehicle and the main reason, built from a forecast fetched shortly before.",
+      "example": "Car · return trip 70% chance of rain",
+      "iphone": "On iPhone, notifications need the app added to the Home Screen first (iOS 16.4 or later).",
+      "unavailable": "Notifications are not switched on yet. The recommendation works without them."
     }
   }
 }

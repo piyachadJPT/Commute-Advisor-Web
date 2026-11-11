@@ -25,9 +25,12 @@ const NUMBER = /^-?\d+(\.\d+)?$/;
 export function LocationPicker({
   locationKey,
   initialName,
+  returnTo = "settings",
 }: {
   locationKey: "home" | "work";
   initialName: string;
+  /** Where saving goes next. A fixed choice, resolved on the server. */
+  returnTo?: "settings" | "onboarding";
 }) {
   const t = useTranslations("settings.location");
   const [state, action, pending] = useActionState(
@@ -94,6 +97,7 @@ export function LocationPicker({
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="key" value={locationKey} />
+      <input type="hidden" name="returnTo" value={returnTo} />
 
       <div>
         <label htmlFor="place-search" className={fieldLabel}>
