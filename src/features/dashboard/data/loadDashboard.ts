@@ -4,15 +4,11 @@ import { resolveRecommendation } from "@/features/commute/domain/locking";
 import { targetDate } from "@/features/commute/domain/schedule";
 import {
   addDays,
-  asLocalTime,
   localDateOf,
   weekdayOf,
   zonedToInstant,
 } from "@/features/commute/domain/tz";
-import type {
-  CommuteSettings,
-  LocalTime,
-} from "@/features/commute/domain/types";
+import type { LocalTime } from "@/features/commute/domain/types";
 import { latestFetch, toHourlyWeather } from "@/features/forecast/data/mapping";
 import { getHourlyForecasts } from "@/features/forecast/data/forecastRepo";
 import {
@@ -20,7 +16,10 @@ import {
   persistRecommendation,
 } from "@/features/recommendations/data/recommendationRepo";
 import { listSkippedDays } from "@/features/recommendations/data/skipDayRepo";
-import { getUserSettings } from "@/features/settings/data/settingsRepo";
+import {
+  getUserSettings,
+  toCommuteSettings,
+} from "@/features/settings/data/settingsRepo";
 import type { Database } from "@/lib/database.types";
 import { buildDashboardView } from "../domain/buildView";
 import type { DashboardView } from "../view";
@@ -50,14 +49,7 @@ export async function loadDashboard(input: {
   if (!s) throw new Error("No settings row for the signed-in user");
   if (!s.home.isSet || !s.work.isSet) return { kind: "needs-locations" };
 
-  const settings: CommuteSettings = {
-    departureTime: asLocalTime(s.departureTime),
-    returnTime: asLocalTime(s.returnTime),
-    durationMinutes: s.durationMinutes,
-    threshold: s.threshold,
-    commuteDays: s.commuteDays,
-    timeZone: s.timeZone,
-  };
+  const settings = toCommuteSettings(s);
   const tz = settings.timeZone;
   const today = localDateOf(now, tz);
   const weekStart = addDays(today, -(weekdayOf(today) - 1));

@@ -1,4 +1,10 @@
-import { HOUR_MS, floorToLocalHour, localTimeOf, zonedToInstant } from "./tz";
+import {
+  HOUR_MS,
+  floorToLocalHour,
+  localParts,
+  localTimeOf,
+  zonedToInstant,
+} from "./tz";
 import type {
   CommuteType,
   CommuteWindow,
@@ -45,5 +51,26 @@ export function mapWindow(
     localStart: start,
     localEnd: localTimeOf(endInstant, timeZone),
     bucketTimes,
+  };
+}
+
+/**
+ * Where a window sits on a local-time chart: fractional start and end hours (8:20 is 8.333)
+ * and the local hour of each bucket label it uses (08:20-09:20 -> 9 and 10). Labels after
+ * midnight continue past 24 (23:30-00:30 -> 24 and 25), so they stay in order.
+ */
+export function windowHours(
+  window: CommuteWindow,
+  timeZone: string,
+): { startHour: number; endHour: number; buckets: number[] } {
+  const start = localParts(window.start, timeZone);
+  const startHour = start.hour + start.minute / 60;
+  const firstLabel =
+    localParts(floorToLocalHour(window.start, timeZone), timeZone).hour + 1;
+  return {
+    startHour,
+    endHour:
+      startHour + (window.end.getTime() - window.start.getTime()) / HOUR_MS,
+    buckets: window.bucketTimes.map((_, i) => firstLabel + i),
   };
 }

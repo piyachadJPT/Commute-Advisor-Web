@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import type { LocationKey } from "@/features/commute/domain/types";
+import { asLocalTime } from "@/features/commute/domain/tz";
+import type {
+  CommuteSettings,
+  LocationKey,
+} from "@/features/commute/domain/types";
 
 type Client = SupabaseClient<Database>;
 
@@ -133,4 +137,16 @@ export async function updateCommuteSettings(
     })
     .eq("user_id", userId);
   if (error) throw new Error(`settings update failed: ${error.message}`);
+}
+
+/** The slice of settings the engine needs, with branded local times. */
+export function toCommuteSettings(s: UserSettings): CommuteSettings {
+  return {
+    departureTime: asLocalTime(s.departureTime),
+    returnTime: asLocalTime(s.returnTime),
+    durationMinutes: s.durationMinutes,
+    threshold: s.threshold,
+    commuteDays: s.commuteDays,
+    timeZone: s.timeZone,
+  };
 }

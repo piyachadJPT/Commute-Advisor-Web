@@ -8,17 +8,16 @@ import {
   isCommuteDay,
   nextCommuteDay,
 } from "@/features/commute/domain/schedule";
+import { windowHours } from "@/features/commute/domain/windowMapper";
 import {
   addDays,
   localDateOf,
-  localParts,
   localTimeOf,
   weekdayOf,
   zonedToInstant,
 } from "@/features/commute/domain/tz";
 import type {
   CommuteSettings,
-  CommuteWindow,
   ComputedRecommendation,
   HourlyWeather,
   Instant,
@@ -37,7 +36,6 @@ import {
   type NowView,
   type TripView,
   type WeekDayView,
-  type WindowView,
 } from "../view";
 
 export type BuildInput = {
@@ -201,8 +199,8 @@ export function buildDashboardView(input: BuildInput): DashboardView {
     fetchedAt: computed.forecastFetchedAt,
     stale: computed.freshness === "stale",
     windows: {
-      departure: windowView(computed.departure.window, tz),
-      return: windowView(computed.returnTrip.window, tz),
+      departure: windowHours(computed.departure.window, tz),
+      return: windowHours(computed.returnTrip.window, tz),
     },
     hourly: {
       home: hourlySeries(input.home, target, tz),
@@ -246,16 +244,6 @@ function tripView(
     missingHours: [
       ...new Set(trip.missingBuckets.map((b) => localTimeOf(b.time, tz))),
     ],
-  };
-}
-
-function windowView(w: CommuteWindow, tz: string): WindowView {
-  const start = localParts(w.start, tz);
-  const startHour = start.hour + start.minute / 60;
-  return {
-    startHour,
-    endHour: startHour + (w.end.getTime() - w.start.getTime()) / 3_600_000,
-    buckets: w.bucketTimes.map((t) => localParts(t, tz).hour),
   };
 }
 

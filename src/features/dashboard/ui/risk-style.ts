@@ -38,15 +38,6 @@ export const RISK_STYLE: Record<
   },
 };
 
-/** Mock-only band lookup (§5.4). The tested domain version lands in Phase 4. */
-export function riskLevel(p: number | null): RainRiskLevel {
-  if (p === null) return "unknown";
-  if (p >= 70) return "veryHigh";
-  if (p >= 50) return "high";
-  if (p >= 20) return "low";
-  return "veryLow";
-}
-
 export const VEHICLE_STYLE: Record<
   Vehicle,
   { text: string; tint: string; icon: IconName }

@@ -233,5 +233,50 @@
       "rateLimited": "Too many requests. Wait a moment and try again.",
       "sendFailed": "The email could not be sent. Try again in a moment."
     }
+  },
+  "weather": {
+    "location": "Location",
+    "dayLabel": "Day",
+    "day": {
+      "today": "Today",
+      "tomorrow": "Tomorrow"
+    },
+    "chart": {
+      "title": "Chance of rain at {place}",
+      "subtitle": "{day} · blue bands are your trips · dashed line is the {threshold}% threshold",
+      "summary": "Chance of rain at {place}, {day}: highest {max} percent at {hour}, threshold {threshold} percent",
+      "summaryEmpty": "No forecast for {place}, {day}"
+    },
+    "list": {
+      "title": "Hour by hour",
+      "note": "Rain values cover the hour ending at the time shown"
+    },
+    "empty": "No forecast for this day yet",
+    "precipitation": "Precipitation",
+    "temperature": "Temperature",
+    "stale": "older than 6 hours"
+  },
+  "history": {
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "summary": "Recommendations this month",
+    "bar": "Car {car} days, motorcycle {motorcycle} days, no call {unknown} days",
+    "skipped": "Skipped",
+    "pending": "Not locked yet",
+    "returnNow": "Return now {risk}%",
+    "empty": "No recommendations recorded in {month}. A day appears here once you open the app on a commute day.",
+    "detail": {
+      "back": "Back to history",
+      "skipped": "This day was skipped.",
+      "lockedLabel": "Locked",
+      "notLocked": "Not locked yet",
+      "fetchedLabel": "Forecast fetched",
+      "noFetch": "No fetch time recorded",
+      "latestLabel": "Return risk now",
+      "latest": "{risk}% (the locked value is kept above)",
+      "dataLabel": "Forecast data",
+      "complete": "All forecast hours available",
+      "incomplete": "Some forecast hours were missing"
+    }
   }
 }

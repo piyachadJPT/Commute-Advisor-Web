@@ -92,3 +92,14 @@ export function formatDateRange(
   }
   return `${part(a, "day")} ${part(a, "month")} – ${part(b, "day")} ${part(b, "month")} ${part(b, "year")}`;
 }
+
+/** "พฤศจิกายน 2569" / "November 2026" */
+export function formatMonthYear(date: Date, locale: Locale): string {
+  const p = parts(date, locale, { month: "long", year: "numeric" });
+  return `${part(p, "month")} ${part(p, "year")}`;
+}
+
+/** "ศ. 13 พ.ย. 2569, 08:20" style stamp: day, month, year and clock. */
+export function formatStamp(date: Date, locale: Locale): string {
+  return `${formatDayMonth(date, locale)} ${formatClock(date, locale)}`;
+}

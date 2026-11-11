@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { HourlySeries } from "../view";
 import { FIRST_HOUR } from "../view";
-import { RISK_STYLE, riskLevel } from "./risk-style";
+import { riskLevelOf } from "@/features/commute/domain/labels";
+import { RISK_STYLE } from "./risk-style";
 
 type Series = "max" | "home" | "work";
 
@@ -176,7 +177,7 @@ export function HourlyChartCard({
                   width={bw}
                   height={T + plotH - top}
                   rx="6"
-                  className={`${RISK_STYLE[riskLevel(p)].svgFill} transition-[y,height] duration-(--duration-sky) ease-(--ease-standard)`}
+                  className={`${RISK_STYLE[riskLevelOf(p)].svgFill} transition-[y,height] duration-(--duration-sky) ease-(--ease-standard)`}
                 />
                 {p >= threshold ? (
                   <text
