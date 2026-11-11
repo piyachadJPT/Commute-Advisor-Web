@@ -215,6 +215,24 @@
       "hours": "Hour",
       "minutes": "Minute",
       "done": "Done"
+    },
+    "about": {
+      "link": "About",
+      "open": "Open About and system status",
+      "back": "Back to settings",
+      "title": "About",
+      "health": {
+        "title": "Automatic updates",
+        "never": "No automatic update has run yet.",
+        "ok": "Last automatic update {time}",
+        "down": "Automatic updates stopped since {time}",
+        "note": "The forecast and the morning notification are refreshed by a scheduled job every 10 minutes."
+      },
+      "credit": {
+        "title": "Weather data",
+        "link": "Weather data by Open-Meteo.com",
+        "license": "Open-Meteo data is licensed under"
+      }
     }
   },
   "auth": {

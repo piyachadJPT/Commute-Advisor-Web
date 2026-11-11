@@ -84,6 +84,9 @@ export type UserSettings = {
   commuteDays: number;
   timeZone: string;
   notificationTime: string; // "HH:mm"
+  notificationsEnabled: boolean;
+  /** null = follow the browser; the tick falls back to Thai. */
+  locale: "th" | "en" | null;
   onboardingCompleted: boolean;
   home: { name: string | null; isSet: boolean };
   work: { name: string | null; isSet: boolean };
@@ -97,7 +100,7 @@ export async function getUserSettings(
   const { data, error } = await supabase
     .from("settings")
     .select(
-      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, notification_time, onboarding_completed, home_latitude, home_name, work_latitude, work_name",
+      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, notification_time, notifications_enabled, locale, onboarding_completed, home_latitude, home_name, work_latitude, work_name",
     )
     .eq("user_id", userId)
     .maybeSingle();
@@ -111,6 +114,8 @@ export async function getUserSettings(
     commuteDays: data.commute_days,
     timeZone: data.timezone,
     notificationTime: data.notification_time.slice(0, 5),
+    notificationsEnabled: data.notifications_enabled,
+    locale: data.locale === "th" || data.locale === "en" ? data.locale : null,
     onboardingCompleted: data.onboarding_completed,
     home: { name: data.home_name, isSet: data.home_latitude !== null },
     work: { name: data.work_name, isSet: data.work_latitude !== null },
@@ -164,4 +169,18 @@ export async function markOnboardingCompleted(
     .update({ onboarding_completed: true })
     .eq("user_id", userId);
   if (error) throw new Error(`settings update failed: ${error.message}`);
+}
+
+/**
+ * Users the scheduler processes: both locations set (onboarding or not, since the analysis
+ * needs both). Service-role client only; it reads every user's settings row.
+ */
+export async function listActiveUserIds(supabase: Client): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("settings")
+    .select("user_id")
+    .not("home_latitude", "is", null)
+    .not("work_latitude", "is", null);
+  if (error) throw new Error(`settings read failed: ${error.message}`);
+  return data.map((r) => r.user_id);
 }

@@ -13,7 +13,7 @@
 | 3 Weather Integration | เสร็จ, commit แล้ว | ยืนยันกับ Supabase จริงแล้ว (ผู้ใช้ตรวจตาราง 2026-11-11) |
 | 4 Commute Engine | เสร็จ (เฉพาะโมดูลบริสุทธิ์), commit แล้ว | ยังไม่ต่อกับ DB/UI (Phase 5–6) |
 | 5 User Interface | **กำลังทำ** (Settings, Dashboard, Weather, History และ Onboarding ต่อข้อมูลจริงแล้ว ยังไม่ได้ลองในเบราว์เซอร์) | ยังไม่ทำ hero/icon/manifest/snapshot/design review |
-| 6 Scheduler, Push & PWA | ยังไม่เริ่ม | |
+| 6 Scheduler, Push & PWA | **กำลังทำ** ชิ้น A (ตัวจัดตารางเวลาฝั่งเซิร์ฟเวอร์) เสร็จ ยังไม่ได้ commit | ชิ้น B (service worker, สมัครรับ push, รายการอุปกรณ์, iPhone) และชิ้น C (ออฟไลน์) ยังไม่ทำ |
 | 7 Final Testing & Release | ยังไม่เริ่ม | |
 
 ## วิธีรันบนเครื่อง
@@ -204,9 +204,35 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - ทุกตัวส่งค่าผ่าน hidden input จึงใช้กับ Server Actions เดิมได้โดยไม่แก้ฝั่งเซิร์ฟเวอร์
 - ข้อจำกัดที่ตั้งใจ: รายการ autofill ของเบราว์เซอร์ (เช่นอีเมลที่จำไว้ในหน้าล็อกอิน) ปรับแต่งไม่ได้ จึงคงไว้เพราะช่วยผู้ใช้
 
+**ทำแล้ว: เนื้อหาเต็มความกว้างบนจอคอม** เอาเพดานความกว้าง 1240 px ออก (ตามคำขอ ต่างจากแผน §11.12 ซึ่งแก้แล้ว) กริด 12 คอลัมน์ขยายตามจอ กราฟทั้งสองวัดความกว้างจริงด้วย `useElementWidth` แล้ววางในหน่วยพิกเซล ตัวอักษรบนกราฟคงที่ 13 px แท่งกว้างไม่เกิน 40 px และความสูงขยายได้ถึง 360 px แทนการขยายทั้งก้อนตามจอ ยังไม่ได้ดูในเบราว์เซอร์
+
 **ที่เหลือใน Phase 5**
 1. hero scene (SVG ชั่วคราวเดิมอยู่ ยังไม่ใช่ Lottie), Playwright snapshot และ design review gate (§12.5) ซึ่งต้องดูหน้าจอจริง
 2. day detail แบบ sheet (ถ้ายังต้องการ), pull-to-refresh, แบนเนอร์ sync ล้มเหลว
+
+## Phase 6 — ความคืบหน้า
+
+**ชิ้น A เสร็จ: ตัวจัดตารางเวลาฝั่งเซิร์ฟเวอร์** `typecheck`/`lint`/`build` ผ่าน เทสต์ 275 ข้อผ่านทั้งสอง timezone (เพิ่ม 41 ข้อ) **ยังไม่ได้รันจริง**: ไม่มีคีย์ VAPID, ไม่มี secret, migration ยังไม่ได้ push, และเทสต์ DB ใช้ local stack ซึ่งยังไม่ได้เปิด
+- `runTick` (`features/jobs/tickService.ts`): ต่อผู้ใช้ทีละคน (1) refresh พยากรณ์ (tick ก่อนแจ้งเตือน 20–30 นาทีบังคับ refresh เฉพาะคนที่เปิดแจ้งเตือน) (2) วิเคราะห์วันเป้าหมายและล็อกเมื่อถึงเวลาออกเดินทาง (3) ส่งแจ้งเตือนตอนเช้าเมื่ออยู่ในช่วง `[notification_time, +20 นาที)` วันเดินทางที่ไม่ถูกข้าม โดย claim วันใน `notification_logs` ก่อนส่ง (ซ้ำไม่ได้) ลบ subscription ที่ push service ตอบ 404/410 นับ failure อย่างอื่น และผู้ใช้คนหนึ่งล้มไม่หยุดคนอื่น
+- `analyzeUser` (`recommendations/recommendationService.ts`) แยกออกจาก `loadDashboard` ให้ Dashboard (ไคลเอนต์ผู้ใช้) กับ tick (service role) ใช้ตัวเดียวกัน
+- ข้อความแจ้งเตือน (`notifications/domain/payload.ts`) ตามแผน §11.8 สามแบบ: สด (`แนะนำรถยนต์ · ขากลับเสี่ยงฝน 70%`), ข้อมูลเก่า (บอกเวลา), ทั่วไป (ไม่มีข้อมูล) ไม่มีพิกัด เล็กกว่า 4 KB
+- allow-list host ของ push (`pushEndpoint.ts`) กัน SSRF: https เท่านั้น ไม่มี credential/port ตรงหรือเป็น subdomain ของ FCM, Mozilla, Apple, Windows
+- `/api/jobs/tick` (POST, `JOB_SECRET`) และ `/api/jobs/daily` (GET, `CRON_SECRET`) เทียบ secret แบบ constant-time ตอบ 401 เหมือนกันทั้ง "ไม่ได้ตั้งค่า" และ "ผิด" บันทึกทุกครั้งใน `job_runs` (เริ่มเป็น `ok` ไม่มี `finished_at` ซึ่ง health ไม่นับ จึงไม่มีทางดูเหมือนสำเร็จถ้างานตายกลางทาง)
+- `vercel.json`: cron รายวัน `0 23 * * *` (06:00 เวลาไทย) เรียก `/api/jobs/daily`
+- migration `supabase/migrations/20261111100000_scheduler_cron.sql`: `pg_net` + ฟังก์ชัน `private.invoke_tick()` อ่าน `app_url` กับ `job_secret` จาก Vault แล้ว pg_cron เรียกทุก 10 นาที ไม่มีรหัสในไฟล์ ถ้ายังไม่ตั้ง secret จะแค่ `notice` ไม่ล้ม
+- `/settings/about`: แหล่งที่มา Open-Meteo (CC BY 4.0) และสถานะอัปเดตอัตโนมัติ (เวลา tick ล่าสุด; เกิน 1 ชั่วโมงขึ้นเตือน "ระบบอัปเดตอัตโนมัติหยุดทำงานตั้งแต่ …") ลิงก์จากหน้า Settings
+
+**การตัดสินใจ**
+- ผู้ใช้ที่ tick ประมวลผล = ตั้งตำแหน่งครบทั้งสองที่ (ไม่ดูธง onboarding ให้ตรงกับ guard)
+- ภาษาของข้อความแจ้งเตือน = `settings.locale` ถ้า null ใช้ไทย (ตอนนี้ `locale` ยังไม่ถูกบันทึกจากหน้า Settings จึงเป็นไทยเสมอจนกว่าจะทำ)
+- ไม่ตั้ง VAPID → tick ข้ามการแจ้งเตือนและนับเป็น `pushNotConfigured` ไม่ claim วัน
+
+**ต้องทำก่อนใช้งานจริง (คุณทำ)**
+1. สร้างค่าลับ: `openssl rand -hex 32` สองครั้งสำหรับ `JOB_SECRET` กับ `CRON_SECRET`, `npx web-push generate-vapid-keys` สำหรับคีย์ VAPID ใส่ `.env.local` และ Vercel Environment Variables: `JOB_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (เช่น `mailto:อีเมลของคุณ`) ห้ามวางในแชต
+2. deploy ขึ้น Vercel (ต้องมี URL จริง เพราะ Supabase เรียกเข้า localhost ไม่ได้)
+3. `supabase db push --remote` เพื่อใช้ migration cron (CLI ต้องอยู่ใน PATH ของคุณ)
+4. ใน SQL editor ของ Supabase: `select vault.create_secret('https://<แอปของคุณ>.vercel.app', 'app_url');` และ `select vault.create_secret('<ค่าเดียวกับ JOB_SECRET>', 'job_secret');`
+5. ตรวจ: ตาราง `job_runs` ควรมีแถวใหม่ทุก 10 นาที และหน้า About ขึ้นเวลาอัปเดตล่าสุด
 
 ## หลังจากนั้น
 

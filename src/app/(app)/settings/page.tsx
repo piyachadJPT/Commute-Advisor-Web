@@ -85,6 +85,14 @@ async function SettingsContent() {
           </section>
 
           <LanguageSection />
+          <section aria-labelledby="about-title" className={card}>
+            <h2 id="about-title" className={cardTitle}>
+              {t("about.link")}
+            </h2>
+            <Link href="/settings/about" className={`${quietButton} mt-3`}>
+              {t("about.open")}
+            </Link>
+          </section>
           <AccountSection email={user.email} />
         </div>
 
