@@ -830,7 +830,7 @@ Validate all of them with Zod at startup (`src/lib/env.ts`). The build fails if 
 - RLS on every table, covered by automated tests (§16.2).
 - The service-role client lives only in `server-only` modules used by `/api/jobs/*`.
 - Every Server Action checks the session and validates its input with Zod. Never trust a `user_id` sent by the client. Take it from the session.
-- Security headers: a Content Security Policy that allows only the app's origin and the Supabase URL for `connect-src`, plus `Referrer-Policy`, `X-Content-Type-Options` and `Permissions-Policy` (geolocation=self).
+- Security headers (Content Security Policy, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`) are **not shipped** (Decision Log #38). There is no user-generated HTML and no third-party script, and a CSP that must allow `'unsafe-inline'` for Next.js would give little protection.
 - Apply Next.js security releases promptly. Enable Dependabot or Renovate.
 
 ### 14.5 Browser permissions
@@ -912,6 +912,8 @@ A recommendation must never silently turn missing data into 0% rain probability.
 - **RLS**: user A cannot read or write user B's rows in any table; the anon role reads nothing; authenticated users cannot read `job_runs`.
 
 ### 16.3 End-to-end and visual tests (Playwright)
+
+> **Not built** (Decision Log #38). The states below are checked by hand, and the §12.5 screenshots are taken manually.
 
 - Dashboard states: car, motorcycle, unknown, stale, offline, sync failed, skipped, locked with return warning. Data is seeded through the local stack with a fixed clock.
 - Onboarding flow, including skip paths.
@@ -1082,12 +1084,14 @@ An ESLint `no-restricted-imports` rule enforces that `src/features/commute` impo
 
 ### Phase 7 — Final Testing and Release
 
-- [ ] Run all unit, database, E2E and visual tests in CI on every pull request.
-- [ ] Offline, date-boundary and timezone tests.
-- [ ] Lighthouse check: performance, accessibility and installability.
-- [ ] Verify Open-Meteo attribution and terms, and the Lottie asset licenses.
-- [ ] Production deploy and the weekly backup Action.
-- [ ] README: local setup, environment variables, key rotation, resuming a paused Supabase project.
+Scope was cut on 2026-11-12 to what a single-owner personal app needs (Decision Log #38). Unit and
+database tests run by hand before a deploy (`npm run test:tz`, `npm run test:db`).
+
+- [x] Offline, date-boundary and timezone tests (covered by the unit suite, the service-worker tests and the device checks in §16.4).
+- [x] Verify Open-Meteo attribution and terms. (No Lottie: the hero scenes are SVG/CSS, so there are no Lottie licenses to check.)
+- [x] README: local setup, environment variables, key rotation, resuming a paused Supabase project, manual backup. `.env.example` restored.
+- [ ] Lighthouse check on production, once, by hand: LCP of the Dashboard, accessibility, installability.
+- Dropped: CI workflow, Dependabot, weekly backup Action, Content Security Policy, and the Playwright E2E and visual-snapshot suites (§16.3). Screenshots for the §12.5 design review are taken by hand instead.
 
 **Exit criteria:** A stable personal web app on free tiers, with no paid API.
 
@@ -1167,6 +1171,7 @@ An ESLint `no-restricted-imports` rule enforces that `src/features/commute` impo
 | 35 | Forecast fetching | Server-side only; browsers never call Open-Meteo forecast | **New** |
 | 36 | Offline | Service worker app shell + IndexedDB snapshot | **New** |
 | 37 | Usage scope | Single owner, personal non-commercial; schema is per-user | **New** |
+| 38 | Phase 7 scope | Cut to README, attribution check and one manual Lighthouse run. No CI, Dependabot, backup Action, CSP or Playwright suites: one owner and one developer, Vercel deploys on push regardless of CI, and the only unrecoverable data (locked history) is covered by a manual `supabase db dump` | **New** 2026-11-12 |
 
 ## 22. Definition of Done
 
@@ -1185,7 +1190,7 @@ The v2.0 release is complete when:
 - [ ] Offline mode shows the last snapshot without presenting it as current.
 - [ ] The scheduler's health is visible in the app.
 - [ ] The UI passes the anti-generic design review (§12.5) in both themes, both languages and both layouts.
-- [ ] Core logic, database operations and RLS have automated tests running in CI.
+- [ ] Core logic, database operations and RLS have automated tests (run locally before a deploy; no CI).
 - [ ] The app runs on Vercel Hobby and Supabase Free with no paid API, and the README documents setup and recovery.
 
 ---
