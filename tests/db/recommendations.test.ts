@@ -74,6 +74,21 @@ describe("daily_recommendations", () => {
     }
   });
 
+  it("defaults advisories to an empty array and only accepts an array (plan §23.4)", async () => {
+    const ok = await user.client
+      .from("daily_recommendations")
+      .insert(base("2026-12-04"))
+      .select("advisories")
+      .single();
+    expect(ok.error).toBeNull();
+    expect(ok.data?.advisories).toEqual([]);
+
+    const bad = await user.client
+      .from("daily_recommendations")
+      .insert({ ...base("2026-12-05"), advisories: { code: "heat" } });
+    expect(bad.error?.code).toBe(PG.checkViolation);
+  });
+
   describe("lock invariant (§5.7)", () => {
     const date = "2026-12-03";
     let id: number;
@@ -99,6 +114,20 @@ describe("daily_recommendations", () => {
       ["reason_code", { reason_code: "bothLow" }],
       ["reason_params", { reason_params: {} }],
       ["data_complete", { data_complete: false }],
+      [
+        "advisories",
+        {
+          advisories: [
+            {
+              code: "heat",
+              level: "warning",
+              trip: "return",
+              source: "home",
+              params: { value: 43 },
+            },
+          ],
+        },
+      ],
       ["forecast_fetched_at", { forecast_fetched_at: "2026-11-12T00:00:00Z" }],
       ["locked_at (unlock)", { locked_at: null }],
       ["locked_at (move)", { locked_at: "2026-11-12T00:00:00Z" }],

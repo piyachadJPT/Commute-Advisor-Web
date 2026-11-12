@@ -142,6 +142,7 @@ export function DashboardView({
           className="lg:col-span-5 lg:self-end"
           departure={view.departure}
           returnTrip={view.returnTrip}
+          vehicle={view.vehicle}
           threshold={view.threshold}
           canSkip={view.canSkip && !offline}
           warning={

@@ -258,6 +258,67 @@ describe("save_forecast_batch (§6.9)", () => {
     });
   });
 
+  it("stores the advisory fields, and a row without those keys gets nulls (plan §23.4)", async () => {
+    const res = await batch(b.client, b.id, "home", 13.756, 100.502, [
+      hour(10, {
+        apparent_temperature: 38.5,
+        uv_index: 9.2,
+        wind_gusts: 44,
+        visibility: 800,
+        is_day: false,
+      }),
+      hour(11), // sent by an app version from before the migration: no new keys
+    ]);
+    expect(res.error).toBeNull();
+
+    const { data } = await admin()
+      .from("hourly_forecasts")
+      .select(
+        "forecast_time, apparent_temperature, uv_index, wind_gusts, visibility, is_day",
+      )
+      .eq("user_id", b.id)
+      .in("forecast_time", ["2026-11-11T10:00:00Z", "2026-11-11T11:00:00Z"])
+      .order("forecast_time");
+    // PostgREST may print the instant as "+00:00" or "Z"; compare as instants.
+    const normalised = data?.map((r) => ({
+      ...r,
+      forecast_time: new Date(r.forecast_time).toISOString(),
+    }));
+    expect(normalised).toEqual([
+      {
+        forecast_time: "2026-11-11T10:00:00.000Z",
+        apparent_temperature: 38.5,
+        uv_index: 9.2,
+        wind_gusts: 44,
+        visibility: 800,
+        is_day: false,
+      },
+      {
+        forecast_time: "2026-11-11T11:00:00.000Z",
+        apparent_temperature: null,
+        uv_index: null,
+        wind_gusts: null,
+        visibility: null,
+        is_day: null,
+      },
+    ]);
+  });
+
+  it("rejects a negative UV index, gust or visibility, and writes nothing", async () => {
+    for (const bad of [
+      { uv_index: -1 },
+      { wind_gusts: -1 },
+      { visibility: -1 },
+    ]) {
+      const before = await counts(b.id);
+      const res = await batch(b.client, b.id, "home", 13.756, 100.502, [
+        hour(12, bad),
+      ]);
+      expect(res.error?.code).toBe(PG.checkViolation);
+      expect(await counts(b.id)).toEqual(before);
+    }
+  });
+
   it("is atomic: one bad row leaves no rows and no log", async () => {
     const before = await counts(b.id);
     const { error } = await batch(b.client, b.id, "home", 13.756, 100.502, [

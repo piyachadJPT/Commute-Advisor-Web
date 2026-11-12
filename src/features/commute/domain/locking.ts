@@ -1,4 +1,5 @@
 import type {
+  Advisory,
   ComputedRecommendation,
   Instant,
   LocationKey,
@@ -18,6 +19,8 @@ export type RecommendationSnapshot = {
   reason: Reason;
   dataComplete: boolean;
   forecastFetchedAt: Instant | null;
+  /** Both trips' advisories as computed at lock; frozen like the rest (plan §23.4). */
+  advisories: Advisory[];
 };
 
 export type StoredRecommendation = RecommendationSnapshot & {
@@ -38,6 +41,7 @@ export function toSnapshot(c: ComputedRecommendation): RecommendationSnapshot {
     reason: c.reason,
     dataComplete: c.dataComplete,
     forecastFetchedAt: c.forecastFetchedAt,
+    advisories: c.advisories,
   };
 }
 

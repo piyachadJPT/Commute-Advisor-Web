@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@/lib/database.types";
 import type { Database } from "@/lib/database.types";
 import type {
+  Advisory,
   LocalDate,
   LocationKey,
   Reason,
@@ -22,6 +23,37 @@ const REASON_CODES = new Set([
   "incomplete",
 ]);
 
+const ADVISORY_CODES = new Set([
+  "heat",
+  "cold",
+  "uv",
+  "gust",
+  "lowVisibility",
+  "thunderstorm",
+  "heavyRain",
+  "wetRoad",
+  "rainNearWindow",
+  "darkReturn",
+]);
+
+/** jsonb → advisories. An entry that does not look right is dropped, never thrown on. */
+export function parseAdvisories(value: unknown): Advisory[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((a): a is Advisory => {
+    if (typeof a !== "object" || a === null) return false;
+    const v = a as Record<string, unknown>;
+    return (
+      typeof v.code === "string" &&
+      ADVISORY_CODES.has(v.code) &&
+      (v.level === "caution" || v.level === "warning") &&
+      (v.trip === "departure" || v.trip === "return") &&
+      (v.source === "home" || v.source === "work") &&
+      typeof v.params === "object" &&
+      v.params !== null
+    );
+  });
+}
+
 function toStored(row: Row): StoredRecommendation {
   if (!REASON_CODES.has(row.reason_code)) {
     throw new Error(
@@ -38,6 +70,7 @@ function toStored(row: Row): StoredRecommendation {
     returnRainMm: row.return_rain_mm,
     reason: { code: row.reason_code, params: row.reason_params } as Reason,
     dataComplete: row.data_complete,
+    advisories: parseAdvisories(row.advisories),
     forecastFetchedAt: row.forecast_fetched_at
       ? new Date(row.forecast_fetched_at)
       : null,
@@ -105,6 +138,7 @@ export async function persistRecommendation(
       reason_code: s.reason.code,
       reason_params: s.reason.params as NonNullable<Json>,
       data_complete: s.dataComplete,
+      advisories: s.advisories as unknown as NonNullable<Json>,
       forecast_fetched_at: s.forecastFetchedAt?.toISOString() ?? null,
       locked_at: write.lockedAt?.toISOString() ?? null,
       updated_at: now.toISOString(),

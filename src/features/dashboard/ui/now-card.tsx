@@ -8,6 +8,13 @@ export function NowCard({ now }: { now: NowView }) {
   const t = useTranslations("dashboard");
   const c = now.weatherCode === null ? null : condition(now.weatherCode);
   const place = t(`place.${now.location}`);
+  // Only what the forecast actually has; nothing is shown in place of a missing value.
+  const extras = [
+    now.apparentTemperature === null
+      ? null
+      : t("now.feelsLike", { value: now.apparentTemperature }),
+    now.uvIndex === null ? null : t("now.uv", { value: now.uvIndex }),
+  ].filter((x): x is string => x !== null);
 
   return (
     <section
@@ -31,9 +38,16 @@ export function NowCard({ now }: { now: NowView }) {
             </span>
           </p>
         </div>
-        <p className="text-temp font-semibold tabular">
-          {now.temperature === null ? "—" : `${now.temperature}°`}
-        </p>
+        <div className="shrink-0 text-right">
+          <p className="text-temp font-semibold tabular">
+            {now.temperature === null ? "—" : `${now.temperature}°`}
+          </p>
+          {extras.length > 0 ? (
+            <p className="text-micro text-ink-3 tabular">
+              {extras.join(" · ")}
+            </p>
+          ) : null}
+        </div>
       </div>
       <dl className="mt-3 grid grid-cols-1 gap-2 @min-[17rem]:grid-cols-3">
         <Stat

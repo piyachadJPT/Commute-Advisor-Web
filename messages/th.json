@@ -77,7 +77,10 @@
       "rain": "ฝน",
       "humidity": "ชื้น",
       "wind": "ลม",
-      "windValue": "{speed} กม./ชม."
+      "windValue": "{speed} กม./ชม.",
+      "feelsLike": "รู้สึก {value}°",
+      "uv": "UV {value}",
+      "gusts": "กระโชก {value} กม./ชม."
     },
     "wmo": {
       "clear": "ท้องฟ้าแจ่มใส",
@@ -131,7 +134,23 @@
       }
     },
     "offline": "ออฟไลน์ · ข้อมูลเมื่อ {when}",
-    "offlineNoTime": "ออฟไลน์ · ยังไม่มีพยากรณ์ที่บันทึกไว้"
+    "offlineNoTime": "ออฟไลน์ · ยังไม่มีพยากรณ์ที่บันทึกไว้",
+    "advisory": {
+      "level": {
+        "caution": "ควรระวัง",
+        "warning": "เตือน"
+      },
+      "heat": "รู้สึกเหมือน {value}° · ดื่มน้ำ",
+      "cold": "รู้สึกเหมือน {value}° · ใส่แจ็กเก็ต",
+      "uv": "UV {value} · ทากันแดด",
+      "gust": "ลมกระโชก {value} กม./ชม. · ขับระวัง",
+      "lowVisibility": "ทัศนวิสัย {value} ม. · ชะลอความเร็ว",
+      "thunderstorm": "พยากรณ์พายุฝนฟ้าคะนอง · ระวัง",
+      "heavyRain": "ฝนหนัก {mm} มม./ชม.",
+      "wetRoad": "ถนนอาจเปียกและลื่น",
+      "rainNearWindow": "{when, select, before {ฝนช่วงก่อนเดินทาง ถึง {hour}} other {ฝนช่วงหลังเดินทาง ถึง {hour}}}",
+      "darkReturn": "ช่วงมืด โอกาสฝน {risk}%"
+    }
   },
   "placeholder": {
     "weather": "พยากรณ์รายชั่วโมงของบ้านและที่ทำงาน",

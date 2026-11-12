@@ -19,6 +19,11 @@ export const HOURLY_VARIABLES = [
   "showers",
   "weather_code",
   "wind_speed_10m",
+  "apparent_temperature",
+  "uv_index",
+  "wind_gusts_10m",
+  "visibility",
+  "is_day",
 ] as const;
 
 export const forecastResponseSchema = z.object({
@@ -34,6 +39,11 @@ export const forecastResponseSchema = z.object({
     showers: numberArray,
     weather_code: numberArray,
     wind_speed_10m: numberArray,
+    apparent_temperature: numberArray,
+    uv_index: numberArray,
+    wind_gusts_10m: numberArray,
+    visibility: numberArray,
+    is_day: numberArray,
   }),
 });
 export type ForecastResponse = z.infer<typeof forecastResponseSchema>;

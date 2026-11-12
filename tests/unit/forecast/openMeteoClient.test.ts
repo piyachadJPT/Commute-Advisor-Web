@@ -22,6 +22,11 @@ const fullHourly = {
   showers: [0, 0.2],
   weather_code: [3, 61],
   wind_speed_10m: [5.4, 7.2],
+  apparent_temperature: [31.2, 33.8],
+  uv_index: [0.4, 5.6],
+  wind_gusts_10m: [12.6, 25.1],
+  visibility: [24140, 18000],
+  is_day: [1, 1],
 };
 
 const noSleep = () => Promise.resolve();
@@ -45,6 +50,63 @@ describe("mapForecast", () => {
       showers: 0.2,
       weather_code: 61,
       wind_speed: 7.2,
+      apparent_temperature: 33.8,
+      uv_index: 5.6,
+      wind_gusts: 25.1,
+      visibility: 18000,
+      is_day: true,
+    });
+  });
+
+  it("maps is_day 0 to false and anything else to null", () => {
+    const rows = mapForecast(
+      forecastResponseSchema.parse({
+        utc_offset_seconds: 25200,
+        hourly: {
+          time: ["2026-11-11T20:00", "2026-11-11T21:00", "2026-11-11T22:00"],
+          is_day: [0, 2, null],
+        },
+      }),
+    );
+    expect(rows.map((r) => r.is_day)).toEqual([false, null, null]);
+  });
+
+  it("nulls out-of-range values of the supporting fields", () => {
+    const rows = mapForecast(
+      forecastResponseSchema.parse({
+        utc_offset_seconds: 25200,
+        hourly: {
+          time: ["2026-11-11T08:00"],
+          apparent_temperature: [120],
+          uv_index: [-1],
+          wind_gusts_10m: [900],
+          visibility: [-5],
+        },
+      }),
+    );
+    expect(rows[0]).toMatchObject({
+      apparent_temperature: null,
+      uv_index: null,
+      wind_gusts: null,
+      visibility: null,
+    });
+  });
+
+  it("a response without the supporting fields still parses, with nulls", () => {
+    const { time, temperature_2m } = fullHourly;
+    const rows = mapForecast(
+      forecastResponseSchema.parse({
+        utc_offset_seconds: 25200,
+        hourly: { time, temperature_2m },
+      }),
+    );
+    expect(rows[0]).toMatchObject({
+      temperature: 27.5,
+      apparent_temperature: null,
+      uv_index: null,
+      wind_gusts: null,
+      visibility: null,
+      is_day: null,
     });
   });
 
@@ -169,7 +231,7 @@ describe("buildForecastUrl", () => {
     expect(url.searchParams.get("forecast_days")).toBe("3");
     expect(url.searchParams.get("timezone")).toBe("Asia/Bangkok");
     expect(url.searchParams.get("hourly")).toBe(
-      "temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,rain,showers,weather_code,wind_speed_10m",
+      "temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,rain,showers,weather_code,wind_speed_10m,apparent_temperature,uv_index,wind_gusts_10m,visibility,is_day",
     );
   });
 });

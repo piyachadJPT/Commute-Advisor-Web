@@ -23,6 +23,16 @@ export type HourlyWeather = {
   showers: number | null;
   weatherCode: number | null;
   windSpeed: number | null;
+  /** "Feels like" temperature, °C, instant (plan §23.3). */
+  apparentTemperature: number | null;
+  /** UV index, mean of the preceding hour. */
+  uvIndex: number | null;
+  /** Maximum gust at 10 m over the preceding hour, km/h. */
+  windGusts: number | null;
+  /** Visibility in metres, instant. */
+  visibility: number | null;
+  /** Daylight at the label time, instant. */
+  isDay: boolean | null;
 };
 
 export type CommuteWindow = {
@@ -93,6 +103,32 @@ export type Reason =
       };
     };
 
+export type AdvisoryCode =
+  | "heat"
+  | "cold"
+  | "uv"
+  | "gust"
+  | "lowVisibility"
+  | "thunderstorm"
+  | "heavyRain"
+  | "wetRoad"
+  | "rainNearWindow"
+  | "darkReturn";
+export type AdvisoryLevel = "caution" | "warning";
+
+/**
+ * A note about what to prepare for one trip (plan §23). Never changes the vehicle. Stored as
+ * jsonb in `daily_recommendations.advisories` and rendered in the current locale.
+ */
+export type Advisory = {
+  code: AdvisoryCode;
+  level: AdvisoryLevel;
+  trip: CommuteType;
+  /** Location that produced the worst value; a tie goes to home. */
+  source: LocationKey;
+  params: Record<string, number | string>;
+};
+
 /** Result of analysing one commute day (plan §5.9), before any lock state is applied. */
 export type ComputedRecommendation = {
   date: LocalDate;
@@ -104,4 +140,6 @@ export type ComputedRecommendation = {
   forecastFetchedAt: Instant | null;
   freshness: DataFreshness;
   dataComplete: boolean;
+  /** Supporting notes for both trips, most important first (plan §23.2). */
+  advisories: Advisory[];
 };

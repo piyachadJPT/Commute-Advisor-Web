@@ -119,6 +119,69 @@ describe("buildDashboardView", () => {
     expect(v.returnWarning).toBe(70);
   });
 
+  it("freezes the departure advisories at the lock and keeps the return advisories live", () => {
+    const hot = (
+      location: "home" | "work",
+      apparent: { dep: number; ret: number },
+    ) =>
+      flat(location, DATE, { "09:00": 10, "10:00": 10, "19:00": 10 }).map(
+        (r) => ({
+          ...r,
+          apparentTemperature:
+            r.time.getTime() === bkk(DATE, "19:00").getTime()
+              ? apparent.ret
+              : apparent.dep,
+        }),
+      );
+    const atLock = computeRecommendation({
+      date: D,
+      settings,
+      home: hot("home", { dep: 34, ret: 30 }),
+      work: hot("work", { dep: 30, ret: 30 }),
+      homeFetchedAt: bkk(DATE, "08:00"),
+      workFetchedAt: bkk(DATE, "08:00"),
+      now: bkk(DATE, "08:20"),
+    });
+    const v = build({
+      now: bkk(DATE, "12:00"),
+      home: hot("home", { dep: 45, ret: 43 }), // hotter now: would be a warning if it were live
+      work: hot("work", { dep: 30, ret: 30 }),
+      stored: { [DATE]: lockedFrom(atLock, 10) },
+    });
+    expect(v.departure.advisories).toEqual([
+      {
+        code: "heat",
+        level: "caution",
+        trip: "departure",
+        source: "home",
+        params: { value: 34 },
+      },
+    ]);
+    expect(v.returnTrip.advisories).toEqual([
+      {
+        code: "heat",
+        level: "warning",
+        trip: "return",
+        source: "home",
+        params: { value: 43 },
+      },
+    ]);
+  });
+
+  it("carries feels-like and UV into the 'now' view, rounded", () => {
+    const rows = flat("home", DATE, { "06:00": 10 }).map((r) => ({
+      ...r,
+      apparentTemperature: 34.6,
+      uvIndex: 7.4,
+    }));
+    const v = build({ home: rows });
+    expect(v.now[0]).toMatchObject({ apparentTemperature: 35, uvIndex: 7 });
+    expect(v.now[1]).toMatchObject({
+      apparentTemperature: null,
+      uvIndex: null,
+    });
+  });
+
   it("no return warning when the locked day is a car, or the live risk is still below the threshold", () => {
     const carMorning = computeRecommendation({
       date: D,

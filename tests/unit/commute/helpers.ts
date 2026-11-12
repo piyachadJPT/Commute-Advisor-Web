@@ -34,6 +34,11 @@ export function series(
     showers: 0,
     weatherCode: 3,
     windSpeed: 5,
+    apparentTemperature: null,
+    uvIndex: null,
+    windGusts: null,
+    visibility: null,
+    isDay: null,
   }));
 }
 

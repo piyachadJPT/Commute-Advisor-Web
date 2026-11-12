@@ -7,7 +7,7 @@ import type { DashboardView } from "@/features/dashboard/view";
  * structured-cloned, so the `Date` fields survive. Versioned key: a future change to the view
  * model changes the key instead of breaking old snapshots.
  */
-const KEY = "dashboard-snapshot-v1";
+const KEY = "dashboard-snapshot-v2";
 
 export type Snapshot = { view: DashboardView; savedAt: Date; locale: Locale };
 
@@ -37,6 +37,11 @@ export async function clearSnapshot(): Promise<void> {
   }
 }
 
+const hasAdvisories = (trip: unknown) =>
+  typeof trip === "object" &&
+  trip !== null &&
+  Array.isArray((trip as Record<string, unknown>).advisories);
+
 /** Guards against corrupt or foreign data in IndexedDB before it reaches the UI. */
 export function parseSnapshot(value: unknown): Snapshot | null {
   if (typeof value !== "object" || value === null) return null;
@@ -52,8 +57,8 @@ export function parseSnapshot(value: unknown): Snapshot | null {
       view.vehicle === "motorcycle" ||
       view.vehicle === "unknown") &&
     typeof view.reason === "object" &&
-    typeof view.departure === "object" &&
-    typeof view.returnTrip === "object" &&
+    hasAdvisories(view.departure) &&
+    hasAdvisories(view.returnTrip) &&
     Array.isArray(view.nextDays) &&
     Array.isArray(view.week) &&
     (view.fetchedAt === null || view.fetchedAt instanceof Date);

@@ -45,6 +45,11 @@ const row: HourlyRow = {
   showers: 0,
   weather_code: 3,
   wind_speed: 5,
+  apparent_temperature: null,
+  uv_index: null,
+  wind_gusts: null,
+  visibility: null,
+  is_day: null,
 };
 
 const run = (

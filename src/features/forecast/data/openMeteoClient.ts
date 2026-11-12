@@ -22,6 +22,11 @@ export type HourlyRow = {
   showers: number | null;
   weather_code: number | null;
   wind_speed: number | null;
+  apparent_temperature: number | null;
+  uv_index: number | null;
+  wind_gusts: number | null;
+  visibility: number | null;
+  is_day: boolean | null;
 };
 
 export type OpenMeteoErrorKind =
@@ -184,6 +189,11 @@ const toWeatherCode = intIn(0, 99);
 const toTemperature = numIn(-100, 70);
 const toAmount = numIn(0, 1000); // mm
 const toWind = numIn(0, 500); // km/h
+const toUv = numIn(0, 30); // the docs state no upper bound; the scale tops out near 20
+const toVisibility = numIn(0, 1_000_000); // metres
+/** 1 daylight, 0 night; anything else is unknown, never guessed. */
+const toIsDay = (v: number | null | undefined) =>
+  v === 1 ? true : v === 0 ? false : null;
 
 /**
  * Maps the hourly arrays to rows.
@@ -194,6 +204,9 @@ const toWind = numIn(0, 500); // km/h
  *    08:00-09:00 hour. §5.1 window mapping depends on this.
  *  - temperature_2m, relative_humidity_2m, wind_speed_10m, weather_code are "Instant" values
  *    at T.
+ *  - Advisory fields (re-verified 2026-11-12): apparent_temperature, visibility and is_day are
+ *    "Instant"; uv_index is the "Preceding hour mean" and wind_gusts_10m the "Preceding hour
+ *    max", so they follow the same (T - 1h, T] bucket as rain. Visibility is in metres.
  * Open-Meteo labels times in the requested timezone with a fixed `utc_offset_seconds`; they are
  * converted to UTC instants here and stored as timestamptz.
  *
@@ -228,6 +241,11 @@ export function mapForecast(data: ForecastResponse): HourlyRow[] {
       showers: toAmount(hourly.showers?.[i]),
       weather_code: toWeatherCode(hourly.weather_code?.[i]),
       wind_speed: toWind(hourly.wind_speed_10m?.[i]),
+      apparent_temperature: toTemperature(hourly.apparent_temperature?.[i]),
+      uv_index: toUv(hourly.uv_index?.[i]),
+      wind_gusts: toWind(hourly.wind_gusts_10m?.[i]),
+      visibility: toVisibility(hourly.visibility?.[i]),
+      is_day: toIsDay(hourly.is_day?.[i]),
     };
   });
 }

@@ -1,3 +1,4 @@
+import { computeAdvisories } from "./advisories";
 import { analyzeTrip, decide } from "./analyzer";
 import { freshnessOf, olderOf } from "./freshness";
 import { deriveReason } from "./reasons";
@@ -52,5 +53,14 @@ export function computeRecommendation(input: {
     forecastFetchedAt: olderOf(input.homeFetchedAt, input.workFetchedAt),
     freshness: freshnessOf(input.homeFetchedAt, input.workFetchedAt, input.now),
     dataComplete: departure.isComplete && returnTrip.isComplete,
+    // Reports only; the vehicle above is decided by rain alone (plan §23.1).
+    advisories: computeAdvisories({
+      departure,
+      returnTrip,
+      threshold,
+      home,
+      work,
+      timeZone,
+    }),
   };
 }

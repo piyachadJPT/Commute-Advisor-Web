@@ -1,12 +1,15 @@
 import { useFormatter, useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import { skipToday } from "../actions";
+import type { Vehicle } from "@/features/commute/domain/types";
 import type { TripView } from "../view";
+import { AdvisoryChips } from "./advisory-chips";
 import { RISK_STYLE } from "./risk-style";
 
 type TripsCardProps = {
   departure: TripView;
   returnTrip: TripView;
+  vehicle: Vehicle;
   threshold: number;
   updatedLabel: string;
   /** The target is today, so "skip today" applies. */
@@ -20,6 +23,7 @@ type TripsCardProps = {
 export function TripsCard({
   departure,
   returnTrip,
+  vehicle,
   threshold,
   updatedLabel,
   canSkip,
@@ -34,12 +38,12 @@ export function TripsCard({
     >
       <div className="@container">
         <div className="grid grid-cols-1 py-[1.125rem] @min-[19rem]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-          <Trip trip={departure} threshold={threshold} />
+          <Trip trip={departure} threshold={threshold} vehicle={vehicle} />
           <div
             aria-hidden="true"
             className="mx-[1.125rem] my-4 h-px bg-[repeating-linear-gradient(to_right,var(--divider)_0_6px,transparent_6px_11px)] @min-[19rem]:mx-0 @min-[19rem]:my-0 @min-[19rem]:h-auto @min-[19rem]:w-px @min-[19rem]:bg-[repeating-linear-gradient(to_bottom,var(--divider)_0_6px,transparent_6px_11px)]"
           />
-          <Trip trip={returnTrip} threshold={threshold} />
+          <Trip trip={returnTrip} threshold={threshold} vehicle={vehicle} />
         </div>
       </div>
       {warning ? (
@@ -72,7 +76,15 @@ export function TripsCard({
   );
 }
 
-function Trip({ trip, threshold }: { trip: TripView; threshold: number }) {
+function Trip({
+  trip,
+  threshold,
+  vehicle,
+}: {
+  trip: TripView;
+  threshold: number;
+  vehicle: Vehicle;
+}) {
   const t = useTranslations("dashboard");
   const format = useFormatter();
   const risk = RISK_STYLE[trip.riskLevel];
@@ -133,6 +145,7 @@ function Trip({ trip, threshold }: { trip: TripView; threshold: number }) {
                   })
             } · ${t("trip.source", { source: t(`location.${trip.riskSource}`) })}`}
       </p>
+      <AdvisoryChips advisories={trip.advisories} vehicle={vehicle} />
     </div>
   );
 }

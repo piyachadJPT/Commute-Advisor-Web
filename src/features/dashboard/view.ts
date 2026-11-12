@@ -1,6 +1,7 @@
 // View model the Dashboard UI renders (plan §11.2). Built from real data by
 // `domain/buildView.ts`. Types only: no logic here.
 import type {
+  Advisory,
   LocationKey,
   RainRiskLevel,
   Reason,
@@ -15,6 +16,8 @@ export type TripView = {
   riskSource: LocationKey | null;
   rainMm: number | null;
   missingHours: string[];
+  /** Supporting notes for this trip, most important first (plan §23). Never change the verdict. */
+  advisories: Advisory[];
 };
 
 /** Same shape the engine stores (`reason_code` + `reason_params`). */
@@ -33,6 +36,9 @@ export type NowView = {
   rainProbability: number | null;
   humidity: number | null;
   windSpeed: number | null;
+  /** "Feels like", °C, rounded. */
+  apparentTemperature: number | null;
+  uvIndex: number | null;
 };
 
 export type NextDayView = {

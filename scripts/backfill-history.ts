@@ -3,7 +3,10 @@
  * has run for months. Run from the project folder:
  *
  *   npm run backfill                       show what would be added (writes nothing)
- *   npm run backfill -- --write            add it
+ *   npm run backfill -- --write            add it (days that already have a row are left alone)
+ *   npm run backfill -- --write --replace  first delete the rows this script made earlier, then add
+ *                                          them again (needed to add data a newer version stores,
+ *                                          because a locked row cannot be updated)
  *   npm run backfill -- --undo             show how many backfilled rows exist
  *   npm run backfill -- --undo --write     delete them
  *   options: --months 6   --user-id <uuid>   --home lat,lon --work lat,lon
@@ -13,7 +16,9 @@
  * as a locked recommendation. The archive has the rain that fell but no forecast probability, so the
  * chance of rain is estimated from the rain (see rainProbability in backfill-core.ts). The rows are
  * therefore "what the app would have said knowing how much rain was coming", NOT what it showed at
- * the time. Each carries `backfill: true` in reason_params, which is how --undo finds them.
+ * the time. The archive also has feels-like temperature, gusts and day/night, so heat, cold, gust,
+ * thunderstorm and rain-extra advisories are stored too; it has no UV or visibility, so those two
+ * never appear in backfilled rows. Each carries `backfill: true` in reason_params, which is how --undo finds them.
  *
  * It never overwrites a real row (existing dates are left alone), skips skipped days and days whose
  * weather is missing, and writes only with --write. Credentials are read from .env by this script.
@@ -51,6 +56,7 @@ const option = (name: string) => {
 };
 const write = flag("write");
 const undo = flag("undo");
+const replace = flag("replace");
 const months = Number(option("months") ?? 6);
 const coords = (value: string | undefined) => {
   if (!value) return null;
@@ -63,7 +69,7 @@ const coords = (value: string | undefined) => {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const ARCHIVE = "https://archive-api.open-meteo.com/v1/archive";
 const VARIABLES =
-  "temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m";
+  "temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,apparent_temperature,wind_gusts_10m,is_day";
 
 /** The archive in chunks of 90 days (plus one day of overlap for windows that cross midnight). */
 async function fetchArchive(
@@ -314,6 +320,20 @@ async function main() {
   console.log(
     `รถยนต์ ${count("car")} วัน | มอเตอร์ไซค์ ${count("motorcycle")} วัน`,
   );
+  const byCode = new Map<string, number>();
+  for (const r of records) {
+    for (const a of r.advisories) {
+      byCode.set(a.code, (byCode.get(a.code) ?? 0) + 1);
+    }
+  }
+  console.log(
+    byCode.size === 0
+      ? "คำเตือน: ไม่มี"
+      : `คำเตือน (จำนวนรายการ ขาไป+ขากลับ): ${[...byCode]
+          .sort((a, b) => b[1] - a[1])
+          .map(([code, n]) => `${code} ${n}`)
+          .join(", ")}`,
+  );
   for (const r of records.slice(-5)) {
     console.log(
       `  ${r.recommendation_date}  ${r.vehicle.padEnd(10)} ไป ${r.departure_risk}%  กลับ ${r.return_risk}%`,
@@ -331,12 +351,27 @@ async function main() {
       "--write needs the database (do not combine it with --home/--work only)",
     );
 
+  if (replace) {
+    // Only rows this script made (marker), and only after the new plan was built successfully.
+    const { error: delError, count } = await db
+      .from("daily_recommendations")
+      .delete({ count: "exact" })
+      .eq("user_id", userId)
+      .eq(`reason_params->>${BACKFILL_MARKER}`, "true");
+    if (delError)
+      throw new Error(`replace: delete failed: ${delError.message}`);
+    console.log(
+      `ลบแถวเดิมที่สร้างจากสคริปต์นี้ ${count ?? 0} แถว เพื่อเขียนใหม่`,
+    );
+  }
+
   let inserted = 0;
   for (let i = 0; i < records.length; i += 200) {
     const batch = records.slice(i, i + 200).map((r) => ({
       ...r,
       user_id: userId,
       reason_params: r.reason_params as never,
+      advisories: r.advisories as never,
     }));
     const { data, error } = await db
       .from("daily_recommendations")

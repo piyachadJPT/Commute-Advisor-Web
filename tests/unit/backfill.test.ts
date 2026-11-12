@@ -52,6 +52,11 @@ const row = (time: string, over: Partial<HourlyRow> = {}): HourlyRow => ({
   showers: null,
   weather_code: 3,
   wind_speed: 5,
+  apparent_temperature: null,
+  uv_index: null,
+  wind_gusts: null,
+  visibility: null,
+  is_day: null,
   ...over,
 });
 
@@ -83,6 +88,7 @@ function hours(
   date: string,
   rainy: string[] = [],
   missing: string[] = [],
+  over: Partial<HourlyRow> = {},
 ): HourlyRow[] {
   return Array.from({ length: 24 }, (_, h) => {
     const t = `${String(h).padStart(2, "0")}:00`;
@@ -96,6 +102,12 @@ function hours(
       showers: null,
       weather_code: 3,
       wind_speed: 5,
+      apparent_temperature: null,
+      uv_index: null,
+      wind_gusts: null,
+      visibility: null,
+      is_day: null,
+      ...over,
     };
     return missing.includes(t) ? { ...r, precipitation: null } : r;
   });
@@ -109,6 +121,8 @@ function plan(opts: {
   to?: string;
   days?: number;
   now?: Date;
+  /** Extra fields for every hour of Wed 11 Nov (e.g. a hot day). */
+  over11?: Partial<HourlyRow>;
 }) {
   const h = (loc: "home" | "work") =>
     toDomainRows(
@@ -116,7 +130,7 @@ function plan(opts: {
         ...hours("2026-11-08"), // Sunday
         ...hours("2026-11-09"),
         ...hours("2026-11-10"),
-        ...hours("2026-11-11", opts.rainy, opts.missing),
+        ...hours("2026-11-11", opts.rainy, opts.missing, opts.over11),
         ...hours("2026-11-12"),
       ],
       loc,
@@ -169,6 +183,27 @@ describe("planBackfill", () => {
     );
     expect(r.data_complete).toBe(true);
     expect(r.return_risk_latest).toBe(r.return_risk);
+  });
+
+  it("stores the advisories the engine finds, and an empty list when there are none", () => {
+    const { records } = plan({ over11: { apparent_temperature: 35 } });
+    const byDate = Object.fromEntries(
+      records.map((r) => [r.recommendation_date, r]),
+    );
+    expect(byDate["2026-11-10"]!.advisories).toEqual([]);
+    expect(
+      byDate["2026-11-11"]!.advisories.map((a) => [a.code, a.trip]),
+    ).toEqual([
+      ["heat", "departure"],
+      ["heat", "return"],
+    ]);
+  });
+
+  it("advisories never change the vehicle the archive rain gives", () => {
+    const hot = plan({ over11: { apparent_temperature: 45, wind_gusts: 80 } });
+    const calm = plan({});
+    const vehicles = (p: typeof hot) => p.records.map((r) => r.vehicle);
+    expect(vehicles(hot)).toEqual(vehicles(calm));
   });
 
   it("marks every row so --undo can find it", () => {

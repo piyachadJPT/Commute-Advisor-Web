@@ -29,6 +29,9 @@ const ICONS = [
   "rainy_heavy",
   "cloud",
   "schedule",
+  "thermostat",
+  "ac_unit",
+  "bedtime",
 ];
 
 const base = "node_modules/@material-symbols/svg-400/outlined";

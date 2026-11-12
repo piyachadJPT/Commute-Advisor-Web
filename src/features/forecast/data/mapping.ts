@@ -19,6 +19,11 @@ export function toHourlyWeather(row: Row): HourlyWeather {
     showers: row.showers,
     weatherCode: row.weather_code,
     windSpeed: row.wind_speed,
+    apparentTemperature: row.apparent_temperature,
+    uvIndex: row.uv_index,
+    windGusts: row.wind_gusts,
+    visibility: row.visibility,
+    isDay: row.is_day,
   };
 }
 

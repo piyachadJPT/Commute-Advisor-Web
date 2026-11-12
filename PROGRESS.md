@@ -15,6 +15,7 @@
 | 5 User Interface | เสร็จตามขอบเขตที่ลดแล้ว (ทุกหน้าต่อข้อมูลจริง, hero SVG/CSS, icon, manifest) | **ตัด design review gate และ Playwright snapshot ออก (2026-11-12)** ผมยังไม่เคยเปิดหน้าที่ต่อข้อมูลจริงดูในเบราว์เซอร์ (ติดที่ Docker ปิดและ `.env` เสีย) มีแต่ผู้ใช้ที่ใช้งานบนมือถือ ยังไม่ทำ: day detail แบบ sheet, pull-to-refresh, แบนเนอร์ sync ล้มเหลว, ปุ่มลบข้อมูลทั้งหมด |
 | 6 Scheduler, Push & PWA | เสร็จ (ชิ้น A, B, C) deploy บน Vercel (สิงคโปร์) แล้ว | **ผู้ใช้ทดสอบบนอุปกรณ์จริงแล้ว ผ่านทั้งหมด (แจ้งเมื่อ 2026-11-12)** ดูรายละเอียดใต้หัวข้อ "ผลทดสอบบนอุปกรณ์จริง"; ผมตรวจเองได้แค่ `curl` ไปที่ tick (ตอบ 200) และพบ region `sin1` |
 | 7 Final Testing & Release | เสร็จตามขอบเขตที่ลดแล้ว (README, `.env.example`, ตรวจ attribution) | ตัด CI, Dependabot, backup Action, CSP และชุด Playwright ออก (แผน Decision Log #38) เหลือรัน Lighthouse บน production ด้วยมือหนึ่งรอบ |
+| v2.1 A: Weather advisories | โค้ดเสร็จ ยังไม่ commit ยังไม่ push migration | ดู "v2.1 ขั้น A" ท้ายไฟล์: เทสต์ unit ผ่าน, **ยังไม่ได้รันเทสต์ DB และยังไม่ได้ดูหน้าจอจริง** (Docker ปิด) |
 
 ## วิธีรันบนเครื่อง
 
@@ -293,3 +294,26 @@ npm run dev                         # http://localhost:3000/login  (รหัส
 - **Phase 5:** onboarding, หน้า Weather/History/Settings จริง, ต่อ Dashboard เข้ากับข้อมูลจริง, ภาพ hero, icon และ manifest, Playwright visual snapshot และ design review gate (§12.5)
 - **Phase 6:** `/api/jobs/tick` และ `/api/jobs/daily`, pg_cron + pg_net + Vault, Web Push, service worker, offline snapshot
 - **Phase 7:** CI, Lighthouse, security headers/CSP, README, backup action
+
+## v2.1 ขั้น A — คำเตือนสภาพอากาศ (แผน §23.4)
+
+ทำเมื่อ 2026-11-12 กฎเลือกรถไม่เปลี่ยน: ฝนยังเป็นตัวตัดสินเดียว คำเตือนแค่บอกว่าควรเตรียมอะไร
+
+**ทำแล้ว**
+- ดึงเพิ่ม 5 ฟิลด์จาก API เดิม: `apparent_temperature`, `uv_index`, `wind_gusts_10m`, `visibility`, `is_day` (ตรวจเอกสาร 2026-11-12: `uv_index` เป็นค่าเฉลี่ยชั่วโมงก่อนหน้า, `wind_gusts_10m` เป็นค่าสูงสุดชั่วโมงก่อนหน้า, ที่เหลือเป็น instant; บันทึกไว้ที่ `mapForecast`)
+- `commute/domain/advisories.ts` + `advisoryThresholds.ts`: ฟังก์ชันบริสุทธิ์ 10 ชนิด (heat, cold, uv, gust, lowVisibility, thunderstorm, heavyRain, wetRoad, rainNearWindow, darkReturn) `computeRecommendation` คืน `advisories` แต่ `decide()` และ `deriveReason()` ไม่รับค่านี้
+- migration `20261112090000_weather_advisories.sql`: คอลัมน์ใหม่ใน `hourly_forecasts`, `save_forecast_batch` อ่านคีย์ใหม่ (คีย์ที่หายไปเป็น null), `daily_recommendations.advisories` (jsonb array) ถูกล็อกพร้อมคำแนะนำโดย trigger เดิมโดยไม่ต้องแก้ trigger
+- ขาไปที่ล็อกแล้วใช้คำเตือนที่เก็บไว้ ขากลับคำนวณสดเหมือน `return_risk_latest`
+- UI: ชิปคำเตือนใต้แต่ละขาในการ์ดเดินทาง (รถยนต์แสดงเฉพาะ warning), "รู้สึก/UV" ในการ์ด now, แถวรองในรายชั่วโมงหน้า Weather, ไอคอนใหม่ 3 ตัว, ข้อความไทยและอังกฤษ
+- offline snapshot เปลี่ยน key เป็น `dashboard-snapshot-v2`
+
+**ตรวจแล้ว:** `npm run test:tz` (433 ข้อ ผ่านทั้ง UTC และ Asia/Bangkok), `typecheck`, `lint`, `build`
+**ยังไม่ได้ตรวจ (ต้องทำก่อน push migration):**
+1. Docker ปิดอยู่ จึงยังไม่ได้รัน `supabase db reset` กับ migration ใหม่ และยังไม่ได้รัน `npm run test:db` (เขียนเทสต์ DB เพิ่มไว้แล้วใน `tests/db/`: คอลัมน์ใหม่, ค่าติดลบถูกปฏิเสธ, `advisories` ถูกล็อก, ค่าเริ่มต้นเป็น `[]`)
+2. `src/lib/database.types.ts` แก้ด้วยมือ ให้รัน `npm run db:types` ทับหลังเปิด local stack แล้วดู diff
+3. ยังไม่ได้เปิดหน้าจริงดู (ต้องมี local stack กับผู้ใช้): ตรวจชิปบนมือถือทั้งสว่าง/มืด ไทย/อังกฤษ
+4. migration ยังไม่ได้ push ขึ้นโปรเจกต์จริง (`supabase db push --remote` หลังผ่านข้อ 1)
+
+**หมายเหตุ**
+- แถวที่ล็อกก่อน v2.1 มี `advisories = []` และหน้า History ไม่แสดงอะไรให้ ตามแผน
+- เกณฑ์ทั้งหมดอยู่ที่ `advisoryThresholds.ts` ปรับได้หลังใช้งานจริง (บันทึกใน Decision Log)

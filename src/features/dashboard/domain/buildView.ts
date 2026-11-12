@@ -17,6 +17,7 @@ import {
   zonedToInstant,
 } from "@/features/commute/domain/tz";
 import type {
+  Advisory,
   CommuteSettings,
   ComputedRecommendation,
   HourlyWeather,
@@ -90,14 +91,31 @@ export function buildDashboardView(input: BuildInput): DashboardView {
   // --- headline: frozen once locked --------------------------------------------------
   const vehicle = locked ? locked.vehicle : computed.vehicle;
   const reason = locked ? locked.reason : computed.reason;
+  const advisoriesOf = (trip: "departure" | "return", from: Advisory[]) =>
+    from.filter((a) => a.trip === trip);
+  // The departure notes freeze with the verdict; the return notes follow the live forecast,
+  // like the return risk (plan §23.4).
   const departure = locked
-    ? tripView(computed.departure, tz, {
-        risk: locked.departureRisk,
-        riskSource: locked.departureRiskSource,
-        rainMm: locked.departureRainMm,
-      })
-    : tripView(computed.departure, tz);
-  const returnTrip = tripView(computed.returnTrip, tz); // always live
+    ? tripView(
+        computed.departure,
+        tz,
+        advisoriesOf("departure", locked.advisories),
+        {
+          risk: locked.departureRisk,
+          riskSource: locked.departureRiskSource,
+          rainMm: locked.departureRainMm,
+        },
+      )
+    : tripView(
+        computed.departure,
+        tz,
+        advisoriesOf("departure", computed.advisories),
+      );
+  const returnTrip = tripView(
+    computed.returnTrip,
+    tz,
+    advisoriesOf("return", computed.advisories),
+  ); // always live
 
   const liveReturn = computed.returnTrip.risk;
   const warning =
@@ -227,6 +245,7 @@ function maxRisk(a: number | null, b: number | null): number | null {
 function tripView(
   trip: TripAnalysis,
   tz: string,
+  advisories: Advisory[],
   frozen?: {
     risk: number | null;
     riskSource: LocationKey | null;
@@ -244,6 +263,7 @@ function tripView(
     missingHours: [
       ...new Set(trip.missingBuckets.map((b) => localTimeOf(b.time, tz))),
     ],
+    advisories,
   };
 }
 
@@ -291,5 +311,10 @@ function nowView(
     rainProbability: row?.precipitationProbability ?? null,
     humidity: row?.humidity ?? null,
     windSpeed: row?.windSpeed == null ? null : Math.round(row.windSpeed),
+    apparentTemperature:
+      row?.apparentTemperature == null
+        ? null
+        : Math.round(row.apparentTemperature),
+    uvIndex: row?.uvIndex == null ? null : Math.round(row.uvIndex),
   };
 }

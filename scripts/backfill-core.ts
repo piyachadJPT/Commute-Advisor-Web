@@ -9,6 +9,7 @@ import {
   zonedToInstant,
 } from "@/features/commute/domain/tz";
 import type {
+  Advisory,
   CommuteSettings,
   HourlyWeather,
   LocalDate,
@@ -76,6 +77,11 @@ export function toDomainRows(
     showers: r.showers,
     weatherCode: r.weather_code,
     windSpeed: r.wind_speed,
+    apparentTemperature: r.apparent_temperature,
+    uvIndex: r.uv_index,
+    windGusts: r.wind_gusts,
+    visibility: r.visibility,
+    isDay: r.is_day,
   }));
 }
 
@@ -92,6 +98,8 @@ export type BackfillRecord = {
   return_rain_mm: number | null;
   reason_code: string;
   reason_params: Record<string, unknown>;
+  /** What the archive supports: heat, cold, gusts, storms, rain extras. No UV or visibility. */
+  advisories: Advisory[];
   data_complete: true;
   forecast_fetched_at: string;
   locked_at: string;
@@ -179,6 +187,7 @@ export function planBackfill(input: {
       return_rain_mm: s.returnRainMm,
       reason_code: s.reason.code,
       reason_params: { ...s.reason.params, [BACKFILL_MARKER]: true },
+      advisories: s.advisories,
       data_complete: true,
       forecast_fetched_at: fetchedAt.toISOString(),
       locked_at: departureStart.toISOString(),

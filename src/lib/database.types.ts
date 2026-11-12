@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       daily_recommendations: {
         Row: {
+          advisories: NonNullable<Json>;
           created_at: string;
           data_complete: boolean;
           departure_rain_mm: number | null;
@@ -32,6 +33,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          advisories?: NonNullable<Json>;
           created_at?: string;
           data_complete: boolean;
           departure_rain_mm?: number | null;
@@ -52,6 +54,7 @@ export type Database = {
           vehicle: string;
         };
         Update: {
+          advisories?: NonNullable<Json>;
           created_at?: string;
           data_complete?: boolean;
           departure_rain_mm?: number | null;
@@ -112,10 +115,12 @@ export type Database = {
       };
       hourly_forecasts: {
         Row: {
+          apparent_temperature: number | null;
           fetched_at: string;
           forecast_time: string;
           humidity: number | null;
           id: number;
+          is_day: boolean | null;
           latitude: number;
           location_key: string;
           longitude: number;
@@ -125,15 +130,20 @@ export type Database = {
           showers: number | null;
           temperature: number | null;
           user_id: string;
+          uv_index: number | null;
+          visibility: number | null;
           weather_code: number | null;
+          wind_gusts: number | null;
           wind_speed: number | null;
         };
         ComputedFields: never;
         Insert: {
+          apparent_temperature?: number | null;
           fetched_at: string;
           forecast_time: string;
           humidity?: number | null;
           id?: never;
+          is_day?: boolean | null;
           latitude: number;
           location_key: string;
           longitude: number;
@@ -143,14 +153,19 @@ export type Database = {
           showers?: number | null;
           temperature?: number | null;
           user_id: string;
+          uv_index?: number | null;
+          visibility?: number | null;
           weather_code?: number | null;
+          wind_gusts?: number | null;
           wind_speed?: number | null;
         };
         Update: {
+          apparent_temperature?: number | null;
           fetched_at?: string;
           forecast_time?: string;
           humidity?: number | null;
           id?: never;
+          is_day?: boolean | null;
           latitude?: number;
           location_key?: string;
           longitude?: number;
@@ -160,7 +175,10 @@ export type Database = {
           showers?: number | null;
           temperature?: number | null;
           user_id?: string;
+          uv_index?: number | null;
+          visibility?: number | null;
           weather_code?: number | null;
+          wind_gusts?: number | null;
           wind_speed?: number | null;
         };
         Relationships: [];

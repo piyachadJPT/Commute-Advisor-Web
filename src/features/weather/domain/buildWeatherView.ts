@@ -19,6 +19,9 @@ export type WeatherHour = {
   humidity: number | null;
   weatherCode: number | null;
   windSpeed: number | null;
+  apparentTemperature: number | null;
+  uvIndex: number | null;
+  windGusts: number | null;
   /** The commute window this bucket belongs to, if any (departure wins an overlap). */
   trip: CommuteType | null;
 };
@@ -86,6 +89,9 @@ export function buildWeatherView(input: {
       humidity: row?.humidity ?? null,
       weatherCode: row?.weatherCode ?? null,
       windSpeed: row?.windSpeed ?? null,
+      apparentTemperature: row?.apparentTemperature ?? null,
+      uvIndex: row?.uvIndex ?? null,
+      windGusts: row?.windGusts ?? null,
       trip: tripAt.get(time.getTime()) ?? null,
     };
   });

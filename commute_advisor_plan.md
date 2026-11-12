@@ -5,7 +5,7 @@
 > Hosting: Vercel (Hobby)
 > Backend & database: Supabase (Postgres, Auth, pg_cron) — Free plan
 > Weather provider: Open-Meteo (free API)
-> Last updated: 2026-11-11 (visual direction changed to "Sky ambient")
+> Last updated: 2026-11-12 (v2.1 weather advisories planned, §23; visual direction "Sky ambient" 2026-11-11)
 
 ### Changes from 1.1
 
@@ -264,7 +264,9 @@ The Dashboard and analysis target the **next relevant commute day**:
 
 Precipitation amount, weather code, and wind speed are shown as supporting context only. Do not mix them into the primary rule until explicit thresholds and tests are defined.
 
-Future enhancement: configurable heavy-rain and strong-wind safety overrides.
+v2.1 adds **advisories** (§23): heat, cold, UV, gusts, thunderstorms, heavy rain, wet roads, PM2.5 and similar, evaluated per trip with fixed thresholds and tests. They tell the user what to prepare. They never change the vehicle; §5.3 stays the only rule that chooses it.
+
+Future enhancement: configurable heavy-rain and strong-wind safety overrides (§23.8, not scheduled).
 
 ### 5.9 Recommendation output
 
@@ -1128,7 +1130,7 @@ database tests run by hand before a deploy (`npm run test:tz`, `npm run test:db`
 - Machine-learning prediction.
 - An automatic Thai public-holiday calendar (manual skip-day only).
 - A Home Screen widget. Web apps cannot provide iOS widgets.
-- **Future enhancements:** automatic holiday skips, heavy-rain and strong-wind overrides, an alternative notification channel such as the LINE Messaging API or email.
+- **Future enhancements:** automatic holiday skips, heavy-rain and strong-wind overrides, an alternative notification channel such as the LINE Messaging API or email. Weather advisories are planned for v2.1 (§23).
 
 ## 21. Decision Log
 
@@ -1173,6 +1175,9 @@ database tests run by hand before a deploy (`npm run test:tz`, `npm run test:db`
 | 37 | Usage scope | Single owner, personal non-commercial; schema is per-user | **New** |
 | 38 | Phase 7 scope | Cut to README, attribution check and one manual Lighthouse run. No CI, Dependabot, backup Action, CSP or Playwright suites: one owner and one developer, Vercel deploys on push regardless of CI, and the only unrecoverable data (locked history) is covered by a manual `supabase db dump` | **New** 2026-11-12 |
 | 39 | Design review gate (§12.5) | Dropped 2026-11-12. The owner approved the Sky ambient direction from a preview and uses the app on a phone; any visual bug is fixed as it is found | **New** |
+| 40 | Advisories vs. the primary rule (v2.1) | Rain probability alone still chooses the vehicle (§5.3). Temperature, UV, wind, visibility, thunderstorms, rain amount and PM2.5 only produce advisories (§23) | **New** 2026-11-12, planned |
+| 41 | Air-quality source (v2.1) | Open-Meteo Air Quality API (CAMS model), PM2.5 and PM10 in µg/m³ shown against the Thai PCD bands. US AQI is not shown, because its bands differ from the Thai ones. Stored in its own table, because it is a separate source that fails on its own | **New** 2026-11-12, planned |
+| 42 | Advisory overrides (v2.1) | No advisory can change the vehicle in phases A–C. An opt-in override is described in §23.8 but not scheduled | **New** 2026-11-12, planned |
 
 ## 22. Definition of Done
 
@@ -1194,6 +1199,162 @@ The v2.0 release is complete when:
 - [ ] Core logic, database operations and RLS have automated tests (run locally before a deploy; no CI).
 - [ ] The app runs on Vercel Hobby and Supabase Free with no paid API, and the README documents setup and recovery.
 
+## 23. v2.1 — Weather Advisories (planned, not started)
+
+Planned 2026-11-12. Nothing in this section is implemented yet. Phases A, B and C run in that order. Each one is shipped and used for a while before the next one starts.
+
+### 23.1 Goal and the binding rule
+
+Rain is still the only thing that chooses the vehicle. v2.1 adds **advisories**: short, per-trip notes about what to prepare (a jacket, sunscreen, an N95 mask, extra care on wet roads).
+
+- `decide()` (§5.3) and its tests do not change. Every existing §16.5 case must still pass unchanged.
+- An advisory never changes `vehicle`, `reason_code` or the risk labels.
+- Advisories only **report a problem**. They never say a trip is fine. If an advisory is absent, the UI must not read that as "safe", and no copy may say "no warnings" or "good conditions" (this follows §5.4: no promises about the weather).
+- Missing data never creates an advisory, and never creates an "all clear". Values that are present are still evaluated when others are missing: a partial maximum can only understate a problem, so a warning built from it is still true.
+- A failed air-quality or extra-field fetch must not affect the recommendation, its freshness, or the notification's main line.
+
+### 23.2 Advisory model (domain)
+
+A new pure module `src/features/commute/domain/advisories.ts`. It follows the same ESLint restrictions as the rest of the engine: no framework imports and no clock.
+
+```ts
+export type AdvisoryCode =
+  | "heat" | "cold" | "uv" | "gust" | "lowVisibility"     // Phase A, new forecast fields
+  | "thunderstorm" | "heavyRain"                          // Phase A, existing fields
+  | "wetRoad" | "rainNearWindow" | "darkReturn"           // Phase A, derived from rain
+  | "pm25";                                               // Phase B, air quality
+export type AdvisoryLevel = "caution" | "warning";        // warning > caution
+
+export type Advisory = {
+  code: AdvisoryCode;
+  level: AdvisoryLevel;
+  trip: CommuteType;
+  source: LocationKey;      // location that produced the worst value; a tie goes to home
+  params: Record<string, number | string>; // e.g. { value: 39 } or { when: "before", hour: "07:00" }
+};
+
+export function computeAdvisories(input: {
+  departure: TripAnalysis;
+  returnTrip: TripAnalysis;
+  threshold: number;
+  home: readonly HourlyWeather[];
+  work: readonly HourlyWeather[];
+  homeAir?: readonly HourlyAirQuality[];   // Phase B
+  workAir?: readonly HourlyAirQuality[];
+  timeZone: string;
+}): Advisory[];
+```
+
+- Each trip uses the buckets of its window (§5.1) at **both** locations, as §5.2 does for rain, and the worst value wins: the highest for heat, UV, gusts, rain and PM, the lowest for cold and visibility.
+- There is at most one advisory per code per trip, at the higher level that applies.
+- Sort order: level (warning first), then a fixed priority: `thunderstorm`, `heavyRain`, `pm25`, `heat`, `cold`, `lowVisibility`, `gust`, `wetRoad`, `rainNearWindow`, `darkReturn`, `uv`. The push (§23.6) and compact UI take items from the top of this order.
+- `computeRecommendation` gains an `advisories` field. `decide()` and `deriveReason()` do not take advisories as input.
+- Thresholds live in a single constants file, `advisoryThresholds.ts`, and are covered by tests. They are not user-configurable before Phase C.
+
+### 23.3 Thresholds
+
+The starting values are below. They can be tuned after real use; record each change in the Decision Log.
+
+| Code | Input (per trip, both locations) | `caution` | `warning` | Basis |
+|---|---|---|---|---|
+| `heat` | max `apparent_temperature` | ≥ 33 °C | ≥ 42 °C | Thai Department of Health heat-index bands (33–41.9 alert, ≥ 42 danger). Apparent temperature is not the same as the heat index; the copy says "feels like" |
+| `cold` | min `apparent_temperature` | ≤ 22 °C | ≤ 17 °C | Thai Meteorological Department bands (18–22.9 cool, 16–17.9 fairly cold), moved up because the riding wind makes it feel colder |
+| `uv` | max `uv_index` | ≥ 8 | ≥ 11 | WHO UV index bands (very high, extreme) |
+| `gust` | max `wind_gusts_10m` | ≥ 40 km/h | ≥ 60 km/h | Motorcycle stability, owner's judgement |
+| `lowVisibility` | min `visibility` | < 1,000 m | < 200 m | Fog and haze |
+| `thunderstorm` | any `weather_code` in 95, 96, 99 | — | always `warning` | WMO codes. Shown even when the rain probability is below the threshold |
+| `heavyRain` | max `precipitation` in one bucket | ≥ 10 mm | ≥ 30 mm | Preceding-hour sum (§4.2) |
+| `wetRoad` | trip is **not** high (§5.3), and either location's `precipitation` sum over the 2 buckets before the window's first bucket is ≥ 0.5 mm | `caution` | — | Road still wet after rain |
+| `rainNearWindow` | trip is not high, and the bucket just before or just after the window has probability ≥ threshold at either location | `caution` | — | Params `when` (`before`/`after`) and `hour`, so the copy can suggest leaving earlier or later |
+| `darkReturn` | return trip only: some window bucket has `is_day = 0`, and the trip risk is ≥ 20% (`low` band or higher) | `caution` | — | Rain after dark. `is_day` is hourly, so this is approximate to within an hour |
+| `pm25` (Phase B) | max `pm2_5` | > 37.5 µg/m³ | > 75 µg/m³ | Thai PCD PM2.5 bands (37.6–75 starts to affect health, > 75 affects health). Those bands are 24-hour averages; here they are applied to hourly values as an indicator, and the copy says the value is an estimate |
+
+Re-verify every Open-Meteo field name, unit and its instant or preceding-hour semantics against the docs at implementation time, as §4.2 requires, and record the result next to `mapForecast`. Re-check the Thai bands against their current official sources at the same time.
+
+### 23.4 Phase A — More forecast fields and the advisory engine
+
+**Forecast fetch (§4.2, §4.3).** Add these hourly fields to the existing request: `apparent_temperature`, `uv_index`, `wind_gusts_10m`, `visibility`, `is_day`. There are no new requests and no new API.
+
+**Migration (additive only; follow §6.0 and the existing migration style):**
+
+- `hourly_forecasts`: add nullable `apparent_temperature real`, `uv_index real check (uv_index >= 0)`, `wind_gusts real check (wind_gusts >= 0)`, `visibility real check (visibility >= 0)`, `is_day boolean`.
+- `save_forecast_batch`: read the new keys from `p_rows`. A missing key becomes null, so a client deployed before the migration and one deployed after it both still work.
+- `daily_recommendations`: add `advisories jsonb not null default '[]'::jsonb`. The existing lock trigger compares the whole row except `return_risk_latest` and `updated_at`, so the new column is **frozen at lock** with no trigger change. Add a DB test that proves it.
+- Regenerate `database.types.ts`. Rows written before v2.1 keep `[]`, and History shows nothing for them; the backfill script does not rebuild advisories.
+
+**Code:**
+
+- `openMeteoSchema.ts`, `openMeteoClient.ts` (`HourlyRow`, `mapForecast` with range guards like the existing ones), `mapping.ts`, `HourlyWeather` in `types.ts`.
+- `advisories.ts`, `advisoryThresholds.ts`, and `computeRecommendation` returns `advisories`.
+- `recommendationRepo.persistRecommendation` writes `advisories`.
+- After lock, the Dashboard shows the stored snapshot for the departure trip and recomputes the return trip's advisories live, the same way `return_risk_latest` works (§5.7). The stored value is what History shows.
+
+**UI (Dashboard and Weather; keep the existing Sky ambient tokens and components, so no `ui-craft` pass is needed):**
+
+- Trips card: a row of advisory chips under each trip: icon, short label and value ("Feels like 39°", "Gusts 45 km/h"). `warning` uses the risk palette's orange/red; `caution` uses amber. With a `motorcycle` verdict, all chips are shown. With a `car` verdict, only `warning` chips are shown, in compact form, because most advisories concern the rider.
+- Now card: add "feels like" next to the temperature, and UV.
+- Weather screen hourly list: add feels-like, UV and gusts.
+- New icons in `icon-paths.ts` as needed (heat, cold, UV, gust, fog, thunder, wet road).
+- Copy in `messages/th.json` and `messages/en.json` under `dashboard.advisory.*`. Use the §11.8 rules and give an action, not a forecast promise: "รู้สึกเหมือน 39° — ดื่มน้ำ ใส่เสื้อแขนยาวกันแดด" rather than "วันนี้ร้อน".
+- `DashboardView` gains the advisories, so the offline snapshot key moves from `dashboard-snapshot-v1` to `-v2` (`snapshot.ts`), and `parseSnapshot` checks the new field.
+- Every chip needs an accessible name. Color is never the only signal: the level is also in the text.
+
+**Tests:**
+
+- `tests/unit/commute/advisories.test.ts`, table-driven: every threshold edge (just below, at, above), the lowest-value codes, tie goes to home, missing values (no advisory, never a "clear" result), partial data, `wetRoad` and `rainNearWindow` suppressed when the trip is high, `darkReturn` on the return trip only, sort order, one advisory per code per trip.
+- `openMeteoClient.test.ts`: the new fields are mapped, out-of-range values become null, and a response without the new fields still parses.
+- The existing `analyzer.test.ts` and `recommend.test.ts` pass unchanged (the proof that §23.1 holds).
+- DB: `save_forecast_batch` with and without the new keys; `advisories` is frozen after lock.
+- Run under both `TZ=UTC` and `TZ=Asia/Bangkok` (`npm run test:tz`), plus `typecheck`, `lint` and `build`.
+
+**Exit criteria:** advisories appear on the Dashboard for real forecasts; the vehicle for any given forecast is the same as before v2.1; all checks pass.
+
+### 23.5 Phase B — PM2.5 from the Open-Meteo Air Quality API
+
+**Source.** `https://air-quality-api.open-meteo.com/v1/air-quality` with `hourly=pm2_5,pm10`, `forecast_days=3`, `timezone=Asia/Bangkok`. It is free for non-commercial use and needs no key. Data comes from the CAMS global model, which is coarse and may underestimate the worst haze days compared with ground stations (Air4Thai). Every PM value is therefore labelled as a model estimate. Re-verify the endpoint, fields, units (µg/m³), the horizon and the attribution wording at implementation time.
+
+**Migration:**
+
+- New table `hourly_air_quality` (`id`, `user_id`, `location_key`, `latitude`, `longitude`, `forecast_time`, `pm2_5 real`, `pm10 real`, `fetched_at`; unique on `user_id, location_key, forecast_time`), with RLS, grants and policies matching `hourly_forecasts`. It is a separate table because it is a separate source that fails on its own; sharing the forecast upsert would overwrite one source's values with nulls from the other.
+- `save_air_quality_batch` RPC, modelled on `save_forecast_batch`.
+- `forecast_sync_logs`: add `source text not null default 'forecast' check (source in ('forecast', 'air_quality'))`, and extend the last-fetch index with it.
+- `update_location` also purges `hourly_air_quality` for that location. `run_retention` also keeps 14 days of it (§6, Decision Log #12).
+
+**Code:**
+
+- `airQualityClient.ts` and its Zod schema, using the same timeout, 429 backoff and null rules as `openMeteoClient.ts` (§4.6).
+- `forecastSyncService` syncs air quality per location after the forecast, with the same refresh policy (`refreshPolicy.ts`) applied to its own last fetch. A failure is logged with `source = 'air_quality'` and never marks the forecast as failed.
+- Advisories ignore air-quality rows whose last fetch is more than 6 h old (§5.5), so an old haze value never looks current. They are not counted in the recommendation's freshness.
+- `pm25` advisory as in §23.3. Now card: PM2.5 value with the Thai PCD band color and label (≤ 15 very good, ≤ 25 good, ≤ 37.5 moderate, ≤ 75 starts to affect health, > 75 affects health). Weather screen: a PM2.5 row in the hourly list.
+- Settings → About: add the Copernicus Atmosphere Monitoring Service attribution next to the Open-Meteo one, in the wording the Open-Meteo Air Quality docs require.
+
+**Budget.** Requests per user roughly double, from about 36 to about 72 a day for two locations, well within Open-Meteo's free fair-use limits. If 429s rise, follow the §4.6 fallback.
+
+**Tests:** client mapping and errors (as for the forecast client); sync where air quality fails and the forecast succeeds, and the reverse; `pm25` thresholds; the stale air-quality cut-off; DB RLS and the purge on a location change.
+
+**Exit criteria:** PM2.5 is shown and advises correctly; turning the air-quality API off (or making it fail) leaves the recommendation, the notification and the freshness exactly as before.
+
+### 23.6 Phase C — Notifications, History and Settings
+
+- **Push (§13.3).** `buildNotification` (`payload.ts`) adds at most two advisories after the existing main line, taken from the top of the §23.2 sort order: "มอเตอร์ไซค์ได้ · ฝุ่นสูง ใส่ N95 · รู้สึก 39°". The main line and its length come first: if the body would be too long for a lock-screen preview, drop advisories, never the recommendation. A `generic` or `stale` notification adds no advisories.
+- **History (§11.5).** A day's detail shows the advisories stored at lock. The month list may show one icon for the worst advisory of the day.
+- **Settings (§11.6), new group "Advisories":**
+  - A switch per group: heat and cold, sun (UV), wind and visibility, rain extras (`wetRoad`, `rainNearWindow`, `darkReturn`), air quality. `thunderstorm` and `heavyRain` cannot be turned off.
+  - Temperature sensitivity: −3 … +3 °C, applied to the `heat` and `cold` thresholds ("I feel the cold easily" moves `cold` up).
+  - Migration: `settings.advisories_disabled text[] not null default '{}'` with a check that only known group names are allowed, and `settings.temperature_offset smallint not null default 0 check (temperature_offset between -3 and 3)`. Both go into `CommuteSettings` and through the existing Zod settings schema.
+  - A settings change recomputes only unlocked days (§5.7). Locked advisories stay as stored.
+- **Tests:** payload length and ordering in both languages; settings schema; disabled groups produce no advisories; the offset moves the thresholds exactly.
+
+**Exit criteria:** the morning push shows the top advisories; History shows them for days locked after v2.1; the owner can turn groups off and tune the temperature sensitivity.
+
+### 23.7 Order of work and checks per phase
+
+Per phase: re-verify the external docs, write the migration and run `npm run db:reset` and `npm run test:db` locally, write tests first for the domain module, then the client, then the UI. Before closing a phase run `npm run test:tz`, `npm run test:db`, `typecheck`, `lint` and `build`, and check the Dashboard on a phone in both themes and both languages. Push the migration to the hosted project only with `supabase db push --remote`, after the local checks pass. Record the result and any deviation in `PROGRESS.md`.
+
+### 23.8 Not scheduled: opt-in overrides
+
+A later option may let the owner turn on "recommend the car anyway" for `thunderstorm` (warning) or `pm25` (warning). It must stay **off by default**, use its own reason codes (for example `thunderstormOverride`), keep the rain result visible next to it, and get its own Decision Log entry and decision tests. It is not part of phases A–C.
+
 ---
 
 ## References
@@ -1201,6 +1362,7 @@ The v2.0 release is complete when:
 - Open-Meteo: https://open-meteo.com/
 - Open-Meteo Forecast API: https://open-meteo.com/en/docs
 - Open-Meteo Geocoding API: https://open-meteo.com/en/docs/geocoding-api
+- Open-Meteo Air Quality API (v2.1, §23.5): https://open-meteo.com/en/docs/air-quality-api
 - Open-Meteo Terms: https://open-meteo.com/en/terms
 - Next.js documentation: https://nextjs.org/docs
 - Next.js blog (security releases): https://nextjs.org/blog

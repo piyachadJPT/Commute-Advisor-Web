@@ -77,7 +77,10 @@
       "rain": "Rain",
       "humidity": "Humidity",
       "wind": "Wind",
-      "windValue": "{speed} km/h"
+      "windValue": "{speed} km/h",
+      "feelsLike": "Feels {value}°",
+      "uv": "UV {value}",
+      "gusts": "Gusts {value} km/h"
     },
     "wmo": {
       "clear": "Clear sky",
@@ -131,7 +134,23 @@
       }
     },
     "offline": "Offline · data from {when}",
-    "offlineNoTime": "Offline · no forecast saved"
+    "offlineNoTime": "Offline · no forecast saved",
+    "advisory": {
+      "level": {
+        "caution": "Caution",
+        "warning": "Warning"
+      },
+      "heat": "Feels like {value}° · drink water",
+      "cold": "Feels like {value}° · wear a jacket",
+      "uv": "UV {value} · sunscreen",
+      "gust": "Gusts {value} km/h · ride carefully",
+      "lowVisibility": "Visibility {value} m · slow down",
+      "thunderstorm": "Thunderstorm forecast · take care",
+      "heavyRain": "Heavy rain {mm} mm/h",
+      "wetRoad": "Roads may be wet and slippery",
+      "rainNearWindow": "{when, select, before {Rain just before, to {hour}} other {Rain just after, to {hour}}}",
+      "darkReturn": "After dark, {risk}% chance of rain"
+    }
   },
   "placeholder": {
     "weather": "Hourly forecast for home and work",

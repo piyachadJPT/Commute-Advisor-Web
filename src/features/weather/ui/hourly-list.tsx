@@ -25,6 +25,17 @@ export async function HourlyList({ view }: { view: WeatherView }) {
         const c = h.weatherCode === null ? null : condition(h.weatherCode);
         const risk = RISK_STYLE[riskLevelOf(h.probability)];
         const label = `${String(h.hour % 24).padStart(2, "0")}:00`;
+        const extras = [
+          h.apparentTemperature === null
+            ? null
+            : t("now.feelsLike", { value: Math.round(h.apparentTemperature) }),
+          h.uvIndex === null
+            ? null
+            : t("now.uv", { value: Math.round(h.uvIndex) }),
+          h.windGusts === null
+            ? null
+            : t("now.gusts", { value: Math.round(h.windGusts) }),
+        ].filter((x): x is string => x !== null);
         return (
           <li
             key={h.hour}
@@ -84,6 +95,11 @@ export async function HourlyList({ view }: { view: WeatherView }) {
                 </dd>
               </div>
             </dl>
+            {extras.length > 0 ? (
+              <p className="col-span-3 pl-[3.75rem] text-micro text-ink-3 tabular">
+                {extras.join(" · ")}
+              </p>
+            ) : null}
           </li>
         );
       })}
