@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { analyzeTrip } from "@/features/commute/domain/analyzer";
 import { computeAdvisories } from "@/features/commute/domain/advisories";
+import type { AdvisoryGroup } from "@/features/commute/domain/advisoryGroups";
 import { asLocalDate, asLocalTime } from "@/features/commute/domain/tz";
 import type {
   Advisory,
   AdvisoryCode,
+  HourlyAirQuality,
   HourlyWeather,
   LocationKey,
 } from "@/features/commute/domain/types";
@@ -549,5 +551,319 @@ describe("advisories never change the verdict (plan §23.1)", () => {
   it("the snapshot that gets stored and frozen carries the advisories", () => {
     const a = run(stormy);
     expect(toSnapshot(a).advisories).toEqual(a.advisories);
+  });
+});
+
+describe("pm25 advisory (plan §23.5)", () => {
+  const air = (
+    location: LocationKey,
+    byLabel: Record<string, number | null>,
+  ): HourlyAirQuality[] =>
+    Object.entries(byLabel).map(([label, pm25]) => ({
+      time: bkk(DATE, label),
+      location,
+      pm25,
+      pm10: null,
+    }));
+  const run = (p: {
+    home?: Record<string, number | null>;
+    work?: Record<string, number | null>;
+  }) => {
+    const date = asLocalDate(DATE);
+    const dep = analyzeTrip(
+      mapWindow("departure", date, asLocalTime("08:20"), 60, TZ),
+      [],
+      [],
+    );
+    const ret = analyzeTrip(
+      mapWindow("return", date, asLocalTime("18:00"), 60, TZ),
+      [],
+      [],
+    );
+    return computeAdvisories({
+      departure: dep,
+      returnTrip: ret,
+      threshold: 50,
+      home: [],
+      work: [],
+      homeAir: air("home", p.home ?? {}),
+      workAir: air("work", p.work ?? {}),
+      timeZone: TZ,
+    }).filter((a) => a.code === "pm25");
+  };
+
+  it("above 37.5 is a caution, above 75 a warning; the edges themselves are not", () => {
+    const at = (v: number) => run({ home: { "09:00": v } }).map((a) => a.level);
+    expect(at(37.5)).toEqual([]);
+    expect(at(37.6)).toEqual(["caution"]);
+    expect(at(75)).toEqual(["caution"]);
+    expect(at(75.1)).toEqual(["warning"]);
+  });
+
+  it("takes the highest bucket and the worse location, rounded; a tie goes to home", () => {
+    expect(
+      run({
+        home: { "09:00": 40, "10:00": 44.4 },
+        work: { "09:00": 60.2 },
+      }),
+    ).toEqual([
+      {
+        code: "pm25",
+        level: "caution",
+        trip: "departure",
+        source: "work",
+        params: { value: 60 },
+      },
+    ]);
+    expect(
+      run({ home: { "09:00": 50 }, work: { "09:00": 50 } })[0]?.source,
+    ).toBe("home");
+  });
+
+  it("evaluates the return trip on its own bucket", () => {
+    const got = run({ home: { "19:00": 80 } });
+    expect(got.map((a) => [a.trip, a.level])).toEqual([["return", "warning"]]);
+  });
+
+  it("null values and no rows give no advisory", () => {
+    expect(run({ home: { "09:00": null } })).toEqual([]);
+    expect(run({})).toEqual([]);
+  });
+
+  it("sorts after heavyRain and before heat", () => {
+    const date = asLocalDate(DATE);
+    const dep = analyzeTrip(
+      mapWindow("departure", date, asLocalTime("08:20"), 60, TZ),
+      [],
+      [],
+    );
+    const ret = analyzeTrip(
+      mapWindow("return", date, asLocalTime("18:00"), 60, TZ),
+      [],
+      [],
+    );
+    const hot = rows(
+      "home",
+      spread(DEP, { apparentTemperature: 34, precipitation: 12 }),
+    );
+    const got = computeAdvisories({
+      departure: dep,
+      returnTrip: ret,
+      threshold: 50,
+      home: hot,
+      work: [],
+      homeAir: air("home", { "09:00": 40 }),
+      timeZone: TZ,
+    });
+    expect(got.map((a) => a.code)).toEqual(["heavyRain", "pm25", "heat"]);
+  });
+});
+
+describe("pm25 in computeRecommendation: old air data is ignored (plan §23.5)", () => {
+  const smoggy: HourlyAirQuality[] = [9, 10].map((h) => ({
+    time: bkk(DATE, `${String(h).padStart(2, "0")}:00`),
+    location: "home",
+    pm25: 90,
+    pm10: null,
+  }));
+  const labels = [...DEP, ...RET];
+  const run = (airFetchedAt: Date | null) =>
+    computeRecommendation({
+      date: asLocalDate(DATE),
+      settings,
+      home: rows("home", spread(labels, { prob: 10 })),
+      work: rows("work", spread(labels, { prob: 10 })),
+      homeFetchedAt: bkk(DATE, "05:50"),
+      workFetchedAt: bkk(DATE, "05:50"),
+      homeAir: smoggy,
+      homeAirFetchedAt: airFetchedAt,
+      now: bkk(DATE, "12:00"),
+    });
+
+  it("uses air quality fetched within 6 hours (exactly 6 hours counts as fresh)", () => {
+    expect(run(bkk(DATE, "06:00")).advisories.map((a) => a.code)).toEqual([
+      "pm25",
+    ]);
+  });
+  it("ignores air quality fetched more than 6 hours ago, or never", () => {
+    expect(run(bkk(DATE, "05:59")).advisories).toEqual([]);
+    expect(run(null).advisories).toEqual([]);
+  });
+  it("does not touch the vehicle, the risks or the freshness", () => {
+    const a = run(bkk(DATE, "06:00"));
+    const b = run(null);
+    expect({ ...a, advisories: [] }).toEqual({ ...b, advisories: [] });
+  });
+});
+
+describe("advisory settings (plan §23.6)", () => {
+  const run = (
+    p: { home?: Spec; work?: Spec },
+    extra: {
+      disabledGroups?: AdvisoryGroup[];
+      temperatureOffset?: number;
+    } = {},
+  ) => {
+    const home = rows("home", p.home ?? {});
+    const work = rows("work", p.work ?? {});
+    const date = asLocalDate(DATE);
+    const dep = analyzeTrip(
+      mapWindow("departure", date, asLocalTime("08:20"), 60, TZ),
+      home,
+      work,
+    );
+    const ret = analyzeTrip(
+      mapWindow("return", date, asLocalTime("18:00"), 60, TZ),
+      home,
+      work,
+    );
+    return computeAdvisories({
+      departure: dep,
+      returnTrip: ret,
+      threshold: 50,
+      home,
+      work,
+      timeZone: TZ,
+      ...extra,
+    });
+  };
+
+  // One trigger per group, all on the departure trip.
+  const everything: Spec = spread(DEP, {
+    apparentTemperature: 45,
+    uvIndex: 12,
+    windGusts: 70,
+    visibility: 100,
+    weatherCode: 95,
+    precipitation: 12,
+    prob: 10,
+  });
+
+  it("with nothing disabled every group shows", () => {
+    const codes = new Set(run({ home: everything }).map((a) => a.code));
+    for (const c of [
+      "heat",
+      "uv",
+      "gust",
+      "lowVisibility",
+      "thunderstorm",
+      "heavyRain",
+    ]) {
+      expect(codes.has(c as AdvisoryCode)).toBe(true);
+    }
+  });
+
+  it.each([
+    ["heatCold", ["heat", "cold"]],
+    ["sun", ["uv"]],
+    ["windVisibility", ["gust", "lowVisibility"]],
+  ] as const)("disabling %s removes exactly its codes", (group, removed) => {
+    const before = run({ home: everything }).map((a) => a.code);
+    const after = run({ home: everything }, { disabledGroups: [group] }).map(
+      (a) => a.code,
+    );
+    expect(after).toEqual(
+      before.filter((c) => !(removed as readonly string[]).includes(c)),
+    );
+  });
+
+  it("disabling rainExtras removes wetRoad, rainNearWindow and darkReturn", () => {
+    const wet: Spec = {
+      ...spread(DEP, { prob: 10 }),
+      "08:00": { precipitation: 2, prob: 80 },
+      "19:00": { prob: 30, isDay: false },
+    };
+    const calm: Spec = { ...spread(DEP, { prob: 10 }), "19:00": { prob: 30 } };
+    const on = run({ home: wet, work: calm }).map((a) => a.code);
+    expect(on).toEqual(
+      expect.arrayContaining(["wetRoad", "rainNearWindow", "darkReturn"]),
+    );
+    expect(
+      run({ home: wet, work: calm }, { disabledGroups: ["rainExtras"] }),
+    ).toEqual([]);
+  });
+
+  it("disabling airQuality removes pm25", () => {
+    // pm25 needs air rows; the engine drops the code whatever its source.
+    const date = asLocalDate(DATE);
+    const t = analyzeTrip(
+      mapWindow("departure", date, asLocalTime("08:20"), 60, TZ),
+      [],
+      [],
+    );
+    const r = analyzeTrip(
+      mapWindow("return", date, asLocalTime("18:00"), 60, TZ),
+      [],
+      [],
+    );
+    const air = [
+      {
+        time: bkk(DATE, "09:00"),
+        location: "home" as const,
+        pm25: 90,
+        pm10: null,
+      },
+    ];
+    const base = {
+      departure: t,
+      returnTrip: r,
+      threshold: 50,
+      home: [],
+      work: [],
+      homeAir: air,
+      timeZone: TZ,
+    };
+    expect(computeAdvisories(base).map((a) => a.code)).toEqual(["pm25"]);
+    expect(
+      computeAdvisories({ ...base, disabledGroups: ["airQuality"] }),
+    ).toEqual([]);
+  });
+
+  it("thunderstorm and heavyRain cannot be turned off, whatever is disabled", () => {
+    const all: AdvisoryGroup[] = [
+      "heatCold",
+      "sun",
+      "windVisibility",
+      "rainExtras",
+      "airQuality",
+    ];
+    const codes = run({ home: everything }, { disabledGroups: all }).map(
+      (a) => a.code,
+    );
+    expect(codes).toEqual(["thunderstorm", "heavyRain"]);
+  });
+
+  describe("temperature offset moves the heat and cold thresholds exactly", () => {
+    const at = (v: number, offset: number) =>
+      run(
+        { home: spread(DEP, { apparentTemperature: v }) },
+        { temperatureOffset: offset },
+      );
+    const levelOf = (list: Advisory[], code: AdvisoryCode) =>
+      list.find((a) => a.code === code)?.level ?? null;
+
+    it.each([-3, -1, 0, 2, 3])("offset %s", (k) => {
+      // heat: caution at 33+k, warning at 42+k
+      expect(levelOf(at(33 + k - 0.1, k), "heat")).toBeNull();
+      expect(levelOf(at(33 + k, k), "heat")).toBe("caution");
+      expect(levelOf(at(42 + k - 0.1, k), "heat")).toBe("caution");
+      expect(levelOf(at(42 + k, k), "heat")).toBe("warning");
+      // cold: caution at 22+k, warning at 17+k
+      expect(levelOf(at(22 + k + 0.1, k), "cold")).toBeNull();
+      expect(levelOf(at(22 + k, k), "cold")).toBe("caution");
+      expect(levelOf(at(17 + k + 0.1, k), "cold")).toBe("caution");
+      expect(levelOf(at(17 + k, k), "cold")).toBe("warning");
+    });
+
+    it("does not touch the other thresholds", () => {
+      const list = run(
+        { home: spread(DEP, { uvIndex: 8, windGusts: 40 }) },
+        { temperatureOffset: 3 },
+      );
+      expect(list.map((a) => [a.code, a.level])).toEqual([
+        ["gust", "caution"],
+        ["uv", "caution"],
+      ]);
+    });
   });
 });

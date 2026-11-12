@@ -34,6 +34,7 @@ const ADVISORY_CODES = new Set([
   "wetRoad",
   "rainNearWindow",
   "darkReturn",
+  "pm25",
 ]);
 
 /** jsonb → advisories. An entry that does not look right is dropped, never thrown on. */

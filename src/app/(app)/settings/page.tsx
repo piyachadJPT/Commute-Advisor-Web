@@ -125,6 +125,8 @@ async function SettingsContent() {
           durationMinutes={settings.durationMinutes}
           threshold={settings.threshold}
           commuteDays={settings.commuteDays}
+          advisoriesDisabled={settings.advisoriesDisabled}
+          temperatureOffset={settings.temperatureOffset}
         />
       </div>
     </div>

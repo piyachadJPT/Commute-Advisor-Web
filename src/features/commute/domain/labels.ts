@@ -1,3 +1,4 @@
+import { PM25_BAND_EDGES } from "./advisoryThresholds";
 import type { RainRiskLevel } from "./types";
 
 /**
@@ -11,4 +12,21 @@ export function riskLevelOf(probability: number | null): RainRiskLevel {
   if (probability >= 50) return "high";
   if (probability >= 20) return "low";
   return "veryLow";
+}
+
+export type Pm25Band =
+  "veryGood" | "good" | "moderate" | "unhealthySensitive" | "unhealthy";
+
+/** Thai PCD PM2.5 band of a concentration in µg/m³ (plan §23.5). Edges belong to the lower band. */
+export function pm25BandOf(value: number): Pm25Band {
+  const [a, b, c, d] = PM25_BAND_EDGES;
+  return value <= a
+    ? "veryGood"
+    : value <= b
+      ? "good"
+      : value <= c
+        ? "moderate"
+        : value <= d
+          ? "unhealthySensitive"
+          : "unhealthy";
 }

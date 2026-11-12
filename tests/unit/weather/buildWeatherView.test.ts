@@ -53,6 +53,30 @@ describe("buildWeatherView", () => {
     expect(v.hours[23]?.time).toEqual(bkk("2026-11-12", "00:00")); // label 24 is the next midnight
   });
 
+  it("adds PM2.5 per hour from the air rows, null where there is none", () => {
+    const air = [
+      {
+        time: bkk(DATE, "09:00"),
+        location: "home" as const,
+        pm25: 38.4,
+        pm10: null,
+      },
+      {
+        time: bkk(DATE, "10:00"),
+        location: "home" as const,
+        pm25: null,
+        pm10: null,
+      },
+    ];
+    const v = buildWeatherView({
+      rows: rows({ "09:00": 10, "10:00": 10, "11:00": 10 }),
+      air,
+      date: D,
+      settings,
+    });
+    expect(v.hours.slice(8, 11).map((h) => h.pm25)).toEqual([38.4, null, null]);
+  });
+
   it("tags buckets with the commute window they belong to", () => {
     const v = buildWeatherView({
       rows: rows({ "09:00": 1, "10:00": 1, "11:00": 1, "19:00": 1 }),

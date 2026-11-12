@@ -18,6 +18,7 @@ import {
 } from "@/features/commute/domain/tz";
 import type {
   Advisory,
+  HourlyAirQuality,
   CommuteSettings,
   ComputedRecommendation,
   HourlyWeather,
@@ -48,6 +49,9 @@ export type BuildInput = {
   work: readonly HourlyWeather[];
   homeFetchedAt: Instant | null;
   workFetchedAt: Instant | null;
+  /** Air quality the loader judged fresh enough to show (plan §23.5). */
+  homeAir?: readonly HourlyAirQuality[];
+  workAir?: readonly HourlyAirQuality[];
   skipped: ReadonlySet<string>;
   target: LocalDate;
   /** The analysis of `target`, already computed (the loader persists it). */
@@ -225,8 +229,8 @@ export function buildDashboardView(input: BuildInput): DashboardView {
       work: hourlySeries(input.work, target, tz),
     },
     now: [
-      nowView("home", names.home, input.home, now),
-      nowView("work", names.work, input.work, now),
+      nowView("home", names.home, input.home, now, input.homeAir ?? []),
+      nowView("work", names.work, input.work, now, input.workAir ?? []),
     ],
     nextDays,
     week,
@@ -291,6 +295,7 @@ function nowView(
   placeName: string,
   rows: readonly HourlyWeather[],
   now: Instant,
+  air: readonly HourlyAirQuality[],
 ): NowView {
   let best: HourlyWeather | null = null;
   let bestDistance = Infinity;
@@ -316,5 +321,27 @@ function nowView(
         ? null
         : Math.round(row.apparentTemperature),
     uvIndex: row?.uvIndex == null ? null : Math.round(row.uvIndex),
+    pm25: nearestPm25(air, now),
   };
+}
+
+/** PM2.5 of the air row nearest to `now`, rounded; null when none is within the "now" distance. */
+function nearestPm25(
+  rows: readonly HourlyAirQuality[],
+  now: Instant,
+): number | null {
+  let best: HourlyAirQuality | null = null;
+  let bestDistance = Infinity;
+  for (const r of rows) {
+    const d = Math.abs(r.time.getTime() - now.getTime());
+    if (d < bestDistance) {
+      best = r;
+      bestDistance = d;
+    }
+  }
+  return best !== null &&
+    bestDistance <= NOW_MAX_DISTANCE_MS &&
+    best.pm25 !== null
+    ? Math.round(best.pm25)
+    : null;
 }

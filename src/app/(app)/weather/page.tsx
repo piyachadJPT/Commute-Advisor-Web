@@ -7,11 +7,17 @@ import {
   zonedToInstant,
 } from "@/features/commute/domain/tz";
 import type { LocalTime, LocationKey } from "@/features/commute/domain/types";
+import { isFreshEnough } from "@/features/commute/domain/freshness";
+import { getHourlyAirQuality } from "@/features/forecast/data/airQualityRepo";
 import {
   getHourlyForecasts,
   getLastSuccessfulFetch,
 } from "@/features/forecast/data/forecastRepo";
-import { toHourlyWeather } from "@/features/forecast/data/mapping";
+import {
+  latestFetch,
+  toHourlyAirQuality,
+  toHourlyWeather,
+} from "@/features/forecast/data/mapping";
 import {
   getUserSettings,
   toCommuteSettings,
@@ -93,12 +99,18 @@ async function WeatherContent({
   const to = new Date(
     zonedToInstant(addDays(date, 1), midnight, tz).getTime() + HOUR_MS,
   );
-  const [rows, fetchedAt] = await Promise.all([
+  const [rows, fetchedAt, airRows] = await Promise.all([
     getHourlyForecasts(supabase, user.id, loc, from, to),
     getLastSuccessfulFetch(supabase, user.id, loc),
+    // Optional: a failed read leaves the screen without PM2.5, nothing else (plan §23.1).
+    getHourlyAirQuality(supabase, user.id, loc, from, to).catch(() => []),
   ]);
   const view = buildWeatherView({
     rows: rows.map(toHourlyWeather),
+    // Old air quality must not look current (plan §23.5).
+    air: isFreshEnough(latestFetch(airRows), now)
+      ? airRows.map(toHourlyAirQuality)
+      : [],
     date,
     settings,
   });

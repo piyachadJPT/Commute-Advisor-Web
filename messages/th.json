@@ -80,7 +80,8 @@
       "windValue": "{speed} กม./ชม.",
       "feelsLike": "รู้สึก {value}°",
       "uv": "UV {value}",
-      "gusts": "กระโชก {value} กม./ชม."
+      "gusts": "กระโชก {value} กม./ชม.",
+      "pm25": "PM2.5 {value}"
     },
     "wmo": {
       "clear": "ท้องฟ้าแจ่มใส",
@@ -149,7 +150,19 @@
       "heavyRain": "ฝนหนัก {mm} มม./ชม.",
       "wetRoad": "ถนนอาจเปียกและลื่น",
       "rainNearWindow": "{when, select, before {ฝนช่วงก่อนเดินทาง ถึง {hour}} other {ฝนช่วงหลังเดินทาง ถึง {hour}}}",
-      "darkReturn": "ช่วงมืด โอกาสฝน {risk}%"
+      "darkReturn": "ช่วงมืด โอกาสฝน {risk}%",
+      "pm25": "ฝุ่น PM2.5 ประมาณ {value} µg/m³ (ค่าประมาณ) · ใส่หน้ากาก N95"
+    },
+    "pm": {
+      "value": "PM2.5 {value} µg/m³",
+      "estimate": "ค่าประมาณจากแบบจำลอง อาจต่างจากเครื่องวัดใกล้บ้าน",
+      "band": {
+        "veryGood": "ดีมาก",
+        "good": "ดี",
+        "moderate": "ปานกลาง",
+        "unhealthySensitive": "เริ่มมีผลกระทบต่อสุขภาพ",
+        "unhealthy": "มีผลกระทบต่อสุขภาพ"
+      }
     }
   },
   "placeholder": {
@@ -252,7 +265,8 @@
       "credit": {
         "title": "ข้อมูลสภาพอากาศ",
         "link": "Weather data by Open-Meteo.com",
-        "license": "ข้อมูลของ Open-Meteo ใช้ภายใต้สัญญาอนุญาต"
+        "license": "ข้อมูลของ Open-Meteo ใช้ภายใต้สัญญาอนุญาต",
+        "air": "คุณภาพอากาศ: CAMS European air quality forecasts (ENSEMBLE data) โดย Copernicus Atmosphere Monitoring Service ผ่าน Open-Meteo.com"
       }
     },
     "notifications": {
@@ -294,6 +308,19 @@
         "notConfigured": "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า push",
         "failed": "ส่งไม่สำเร็จ"
       }
+    },
+    "advisories": {
+      "title": "คำเตือน",
+      "note": "บอกว่าควรเตรียมอะไร ไม่เปลี่ยนคำแนะนำรถยนต์หรือมอเตอร์ไซค์ พายุฝนฟ้าคะนองและฝนหนักแสดงเสมอ",
+      "groups": {
+        "heatCold": "ร้อนและหนาว",
+        "sun": "แดด (UV)",
+        "windVisibility": "ลมและทัศนวิสัย",
+        "rainExtras": "ฝนเสริม (ถนนเปียก ฝนก่อน/หลังเดินทาง ฝนตอนมืด)",
+        "airQuality": "คุณภาพอากาศ (PM2.5)"
+      },
+      "offset": "ความไวต่ออุณหภูมิ",
+      "offsetHint": "เลื่อนเกณฑ์ร้อนและหนาวตามจำนวนองศานี้ บวก: คุณรู้สึกหนาวกว่าพยากรณ์ จึงเตือนหนาวเร็วขึ้นและร้อนช้าลง ลบ: กลับกัน"
     }
   },
   "auth": {
@@ -365,7 +392,8 @@
       "latest": "{risk}% (ค่าที่ล็อกไว้ยังคงอยู่ด้านบน)",
       "dataLabel": "ข้อมูลพยากรณ์",
       "complete": "มีข้อมูลครบทุกชั่วโมง",
-      "incomplete": "ขาดข้อมูลบางชั่วโมง"
+      "incomplete": "ขาดข้อมูลบางชั่วโมง",
+      "advisories": "คำเตือนตอนล็อก"
     }
   },
   "onboarding": {

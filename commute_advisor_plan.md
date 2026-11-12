@@ -1199,9 +1199,9 @@ The v2.0 release is complete when:
 - [ ] Core logic, database operations and RLS have automated tests (run locally before a deploy; no CI).
 - [ ] The app runs on Vercel Hobby and Supabase Free with no paid API, and the README documents setup and recovery.
 
-## 23. v2.1 — Weather Advisories (phase A done 2026-11-12; B and C not started)
+## 23. v2.1 — Weather Advisories (phases A, B, C implemented 2026-11-12)
 
-Planned 2026-11-12. Phase A is implemented, pushed to `main`, and its migration is applied to the hosted project (progress notes in PROGRESS.md). Phases B and C are not started. Phases A, B and C run in that order. Each one is shipped and used for a while before the next one starts.
+Planned 2026-11-12. Phase A is implemented, pushed to `main`, and its migration is applied to the hosted project. Phases B and C are implemented in the working tree; their two migrations are not yet applied to the hosted project (progress notes in PROGRESS.md). Phases A, B and C run in that order. Each one is shipped and used for a while before the next one starts.
 
 ### 23.1 Goal and the binding rule
 

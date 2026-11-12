@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  ADVISORY_GROUP_NAMES,
+  TEMPERATURE_OFFSET_MAX,
+  TEMPERATURE_OFFSET_MIN,
+} from "@/features/commute/domain/advisoryGroups";
 
 /** Validation for settings forms (plan §11.6). Pure; shared by Server Actions and tests. */
 
@@ -26,6 +31,20 @@ export const commuteSchema = z.object({
     )
     .refine((bits) => new Set(bits).size === bits.length)
     .transform((bits) => bits.reduce((sum, b) => sum + b, 0)),
+  // Advisory groups turned off (plan §23.6). Only the known groups; thunderstorm and heavy rain
+  // are not groups, so they can never be listed here.
+  advisoriesDisabled: z
+    .array(z.enum(ADVISORY_GROUP_NAMES))
+    .refine((groups) => new Set(groups).size === groups.length),
+  // Signed, so it cannot reuse `intField`. Empty fails before conversion (Number("") is 0).
+  temperatureOffset: z
+    .string()
+    .trim()
+    .regex(/^-?\d+$/)
+    .transform(Number)
+    .pipe(
+      z.number().int().min(TEMPERATURE_OFFSET_MIN).max(TEMPERATURE_OFFSET_MAX),
+    ),
 });
 export type CommuteInput = z.infer<typeof commuteSchema>;
 

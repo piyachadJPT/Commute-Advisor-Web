@@ -178,6 +178,11 @@ describe("retention (§6.9)", () => {
       forecast_time: `2026-11-${String(10 + n).padStart(2, "0")}T00:00:00Z`,
       fetched_at: fetched,
     });
+    const aq = (n: number, fetched: string) => ({
+      ...hf(n, fetched),
+      pm2_5: 20,
+    });
+    // `hf` carries no pm columns; `aq` is the same key shape for the air-quality table.
     const sl = (fetched: string) => ({
       user_id: uid,
       location_key: "home",
@@ -196,6 +201,9 @@ describe("retention (§6.9)", () => {
     await admin()
       .from("hourly_forecasts")
       .insert([hf(1, daysAgo(15)), hf(2, daysAgo(13))]);
+    await admin()
+      .from("hourly_air_quality")
+      .insert([aq(1, daysAgo(15)), aq(2, daysAgo(13))]);
     await admin()
       .from("forecast_sync_logs")
       .insert([sl(daysAgo(15)), sl(daysAgo(13))]);
@@ -230,13 +238,18 @@ describe("retention (§6.9)", () => {
     expect(run.error).toBeNull();
     expect(run.data).toMatchObject({
       hourly_forecasts: expect.any(Number),
+      hourly_air_quality: expect.any(Number),
       forecast_sync_logs: expect.any(Number),
       notification_logs: expect.any(Number),
       job_runs: expect.any(Number),
     });
 
     const left = async (
-      table: "hourly_forecasts" | "forecast_sync_logs" | "notification_logs",
+      table:
+        | "hourly_forecasts"
+        | "hourly_air_quality"
+        | "forecast_sync_logs"
+        | "notification_logs",
     ) =>
       (
         await admin()
@@ -245,6 +258,7 @@ describe("retention (§6.9)", () => {
           .eq("user_id", uid)
       ).count;
     expect(await left("hourly_forecasts")).toBe(1);
+    expect(await left("hourly_air_quality")).toBe(1);
     expect(await left("forecast_sync_logs")).toBe(1);
     expect(await left("notification_logs")).toBe(1);
 

@@ -58,17 +58,22 @@ export async function saveForecastBatch(
   return { ok: true, saved: data ?? 0 };
 }
 
-/** `fetched_at` of the newest successful sync for one location, or null if there never was one. */
+/**
+ * `fetched_at` of the newest successful sync for one location and source, or null if there
+ * never was one. The source keeps an air-quality sync from making the forecast look fresh.
+ */
 export async function getLastSuccessfulFetch(
   supabase: Client,
   userId: string,
   locationKey: LocationKey,
+  source: "forecast" | "air_quality" = "forecast",
 ): Promise<Date | null> {
   const { data, error } = await supabase
     .from("forecast_sync_logs")
     .select("fetched_at")
     .eq("user_id", userId)
     .eq("location_key", locationKey)
+    .eq("source", source)
     .eq("status", "success")
     .order("fetched_at", { ascending: false })
     .limit(1)

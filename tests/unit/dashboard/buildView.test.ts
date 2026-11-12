@@ -4,6 +4,7 @@ import {
   type StoredRecommendation,
 } from "@/features/commute/domain/locking";
 import { computeRecommendation } from "@/features/commute/domain/recommend";
+import type { HourlyAirQuality } from "@/features/commute/domain/types";
 import { asLocalDate } from "@/features/commute/domain/tz";
 import { buildDashboardView } from "@/features/dashboard/domain/buildView";
 import { DATE, bkk, series, settings } from "../commute/helpers";
@@ -12,6 +13,7 @@ const names = { home: "Home", work: "Work" };
 const D = asLocalDate(DATE); // Wednesday 2026-11-11
 
 type Opts = {
+  homeAir?: HourlyAirQuality[];
   now?: Date;
   home?: ReturnType<typeof series>;
   work?: ReturnType<typeof series>;
@@ -58,6 +60,7 @@ function build(o: Opts = {}) {
     work,
     homeFetchedAt: fetched,
     workFetchedAt: fetched,
+    homeAir: o.homeAir,
     skipped: new Set(o.skipped ?? []),
     target,
     computed,
@@ -166,6 +169,20 @@ describe("buildDashboardView", () => {
         params: { value: 43 },
       },
     ]);
+  });
+
+  it("carries the nearest PM2.5 into the 'now' view, rounded, and null when there is none", () => {
+    const air = (label: string, pm25: number | null): HourlyAirQuality => ({
+      time: bkk(DATE, label),
+      location: "home",
+      pm25,
+      pm10: null,
+    });
+    const v = build({ homeAir: [air("06:00", 41.6), air("12:00", 99)] });
+    expect(v.now[0]?.pm25).toBe(42);
+    expect(v.now[1]?.pm25).toBeNull(); // no air rows for work
+    expect(build({ homeAir: [air("06:00", null)] }).now[0]?.pm25).toBeNull();
+    expect(build({ homeAir: [air("12:00", 99)] }).now[0]?.pm25).toBeNull(); // 6 h away
   });
 
   it("carries feels-like and UV into the 'now' view, rounded", () => {

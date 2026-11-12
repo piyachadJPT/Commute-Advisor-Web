@@ -7,6 +7,8 @@ const commute = (over: Record<string, unknown> = {}) => ({
   durationMinutes: "60",
   threshold: "50",
   commuteDays: [1, 2, 4, 8, 16],
+  advisoriesDisabled: [],
+  temperatureOffset: "0",
   ...over,
 });
 
@@ -30,6 +32,37 @@ describe("commuteSchema", () => {
     ["threshold above 90", { threshold: "95" }],
     ["a bit that is not a weekday", { commuteDays: [3] }],
     ["a duplicated day", { commuteDays: [1, 1] }],
+  ])("rejects %s", (_n, over) => {
+    expect(commuteSchema.safeParse(commute(over)).success).toBe(false);
+  });
+  it("parses the advisory settings: disabled groups and a signed temperature offset", () => {
+    const r = commuteSchema.parse(
+      commute({
+        advisoriesDisabled: ["sun", "airQuality"],
+        temperatureOffset: "-2",
+      }),
+    );
+    expect(r).toMatchObject({
+      advisoriesDisabled: ["sun", "airQuality"],
+      temperatureOffset: -2,
+    });
+  });
+  it.each(["-3", "-1", "0", "2", "3"])(
+    "accepts a temperature offset of %s",
+    (v) => {
+      expect(
+        commuteSchema.parse(commute({ temperatureOffset: v }))
+          .temperatureOffset,
+      ).toBe(Number(v));
+    },
+  );
+  it.each([
+    ["offset above 3", { temperatureOffset: "4" }],
+    ["offset below -3", { temperatureOffset: "-4" }],
+    ["decimal offset", { temperatureOffset: "1.5" }],
+    ["empty offset", { temperatureOffset: "" }],
+    ["unknown group", { advisoriesDisabled: ["heatCold", "thunderstorm"] }],
+    ["a duplicated group", { advisoriesDisabled: ["sun", "sun"] }],
   ])("rejects %s", (_n, over) => {
     expect(commuteSchema.safeParse(commute(over)).success).toBe(false);
   });

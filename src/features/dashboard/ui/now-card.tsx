@@ -1,7 +1,19 @@
 import { useTranslations } from "next-intl";
 import { Icon } from "@/components/icon";
 import type { NowView } from "../view";
+import { pm25BandOf, type Pm25Band } from "@/features/commute/domain/labels";
+import type { RainRiskLevel } from "@/features/commute/domain/types";
 import { condition } from "./condition";
+import { RISK_STYLE } from "./risk-style";
+
+// Colour comes from the risk palette; the band is always also written out (plan §11.10).
+const BAND_TONE: Record<Pm25Band, RainRiskLevel> = {
+  veryGood: "veryLow",
+  good: "veryLow",
+  moderate: "low",
+  unhealthySensitive: "high",
+  unhealthy: "veryHigh",
+};
 
 /** Current-hour forecast for one location (§11.2 item 6). */
 export function NowCard({ now }: { now: NowView }) {
@@ -67,6 +79,18 @@ export function NowCard({ now }: { now: NowView }) {
           }
         />
       </dl>
+      {now.pm25 === null ? null : (
+        <div className="mt-2">
+          <p
+            className={`flex items-center gap-1 text-label font-semibold tabular ${RISK_STYLE[BAND_TONE[pm25BandOf(now.pm25)]].text}`}
+          >
+            <Icon name="masks" className="size-[1.125rem] shrink-0" />
+            {t("pm.value", { value: now.pm25 })} ·{" "}
+            {t(`pm.band.${pm25BandOf(now.pm25)}`)}
+          </p>
+          <p className="text-micro text-ink-3">{t("pm.estimate")}</p>
+        </div>
+      )}
     </section>
   );
 }

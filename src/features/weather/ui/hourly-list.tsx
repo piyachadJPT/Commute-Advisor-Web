@@ -35,6 +35,7 @@ export async function HourlyList({ view }: { view: WeatherView }) {
           h.windGusts === null
             ? null
             : t("now.gusts", { value: Math.round(h.windGusts) }),
+          h.pm25 === null ? null : t("now.pm25", { value: Math.round(h.pm25) }),
         ].filter((x): x is string => x !== null);
         return (
           <li

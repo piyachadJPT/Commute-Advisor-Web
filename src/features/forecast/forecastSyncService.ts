@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { LocationKey } from "@/features/commute/domain/types";
 import { getUserLocations } from "@/features/settings/data/settingsRepo";
+import {
+  fetchAirQuality,
+  type FetchAirQualityOptions,
+} from "./data/airQualityClient";
+import { saveAirQualityBatch } from "./data/airQualityRepo";
 import { getLastSuccessfulFetch, saveForecastBatch } from "./data/forecastRepo";
 import {
   OpenMeteoError,
@@ -24,6 +29,9 @@ export type SyncDeps = {
   supabase: SupabaseClient<Database>;
   /** Injectable for tests; defaults to the real client. */
   fetchForecast?: (o: FetchForecastOptions) => ReturnType<typeof fetchForecast>;
+  fetchAirQuality?: (
+    o: FetchAirQualityOptions,
+  ) => ReturnType<typeof fetchAirQuality>;
   fetchOptions?: Pick<
     FetchForecastOptions,
     "fetchImpl" | "sleep" | "timeoutMs" | "maxAttempts"
@@ -48,6 +56,7 @@ export async function syncUserForecasts(
   const { supabase } = deps;
   const { userId, trigger, now } = input;
   const doFetch = deps.fetchForecast ?? fetchForecast;
+  const doFetchAir = deps.fetchAirQuality ?? fetchAirQuality;
 
   const settings = await getUserLocations(supabase, userId);
   const configured = new Map(settings?.locations.map((l) => [l.key, l]));
@@ -146,5 +155,96 @@ export async function syncUserForecasts(
       });
     }
   }
+
+  // Air quality comes from a different source, so it is synced after the forecast, on its own
+  // refresh clock, and can never change a forecast result or throw (plan §23.5).
+  if (settings) {
+    for (const key of ["home", "work"] as const) {
+      const location = configured.get(key);
+      if (!location) continue;
+      await syncAirQuality(deps, doFetchAir, {
+        userId,
+        trigger,
+        now,
+        key,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timeZone: settings.timeZone,
+      });
+    }
+  }
   return results;
+}
+
+/** One location's air quality. Failures are logged with source `air_quality`, never thrown. */
+async function syncAirQuality(
+  deps: SyncDeps,
+  doFetch: NonNullable<SyncDeps["fetchAirQuality"]>,
+  input: {
+    userId: string;
+    trigger: SyncTrigger;
+    now: Date;
+    key: LocationKey;
+    latitude: number;
+    longitude: number;
+    timeZone: string;
+  },
+): Promise<void> {
+  const { supabase } = deps;
+  const { userId, trigger, now, key, latitude, longitude } = input;
+  const base = {
+    userId,
+    locationKey: key,
+    latitude,
+    longitude,
+    fetchedAt: now,
+  };
+  try {
+    const decision = decideRefresh({
+      lastSuccessAt: await getLastSuccessfulFetch(
+        supabase,
+        userId,
+        key,
+        "air_quality",
+      ),
+      now,
+      trigger,
+      timeZone: input.timeZone,
+    });
+    if (!decision.refresh) {
+      if (trigger !== "scheduled") {
+        await saveAirQualityBatch(supabase, {
+          ...base,
+          rows: [],
+          log: { trigger, status: "skipped" },
+        });
+      }
+      return;
+    }
+
+    let rows;
+    try {
+      rows = await doFetch({ latitude, longitude, ...deps.fetchOptions });
+    } catch (err) {
+      await saveAirQualityBatch(supabase, {
+        ...base,
+        rows: [],
+        log: {
+          trigger,
+          status: "failed",
+          responseCode: err instanceof OpenMeteoError ? err.status : null,
+          errorMessage:
+            err instanceof Error ? err.message : "Air quality fetch failed",
+        },
+      });
+      return;
+    }
+    await saveAirQualityBatch(supabase, {
+      ...base,
+      rows,
+      log: { trigger, status: "success", responseCode: 200 },
+    });
+  } catch {
+    // Database trouble on the air-quality side only; the next tick tries again.
+  }
 }

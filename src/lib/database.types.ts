@@ -84,6 +84,7 @@ export type Database = {
           location_key: string;
           records_count: number;
           response_code: number | null;
+          source: string;
           status: string;
           trigger: string;
           user_id: string;
@@ -96,6 +97,7 @@ export type Database = {
           location_key: string;
           records_count?: number;
           response_code?: number | null;
+          source?: string;
           status: string;
           trigger: string;
           user_id: string;
@@ -107,8 +109,46 @@ export type Database = {
           location_key?: string;
           records_count?: number;
           response_code?: number | null;
+          source?: string;
           status?: string;
           trigger?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      hourly_air_quality: {
+        Row: {
+          fetched_at: string;
+          forecast_time: string;
+          id: number;
+          latitude: number;
+          location_key: string;
+          longitude: number;
+          pm10: number | null;
+          pm2_5: number | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          fetched_at: string;
+          forecast_time: string;
+          id?: never;
+          latitude: number;
+          location_key: string;
+          longitude: number;
+          pm10?: number | null;
+          pm2_5?: number | null;
+          user_id: string;
+        };
+        Update: {
+          fetched_at?: string;
+          forecast_time?: string;
+          id?: never;
+          latitude?: number;
+          location_key?: string;
+          longitude?: number;
+          pm10?: number | null;
+          pm2_5?: number | null;
           user_id?: string;
         };
         Relationships: [];
@@ -298,6 +338,7 @@ export type Database = {
       };
       settings: {
         Row: {
+          advisories_disabled: string[];
           analysis_duration_minutes: number;
           commute_days: number;
           departure_time: string;
@@ -310,6 +351,7 @@ export type Database = {
           onboarding_completed: boolean;
           rain_threshold: number;
           return_time: string;
+          temperature_offset: number;
           timezone: string;
           updated_at: string;
           user_id: string;
@@ -319,6 +361,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          advisories_disabled?: string[];
           analysis_duration_minutes?: number;
           commute_days?: number;
           departure_time?: string;
@@ -331,6 +374,7 @@ export type Database = {
           onboarding_completed?: boolean;
           rain_threshold?: number;
           return_time?: string;
+          temperature_offset?: number;
           timezone?: string;
           updated_at?: string;
           user_id: string;
@@ -339,6 +383,7 @@ export type Database = {
           work_name?: string | null;
         };
         Update: {
+          advisories_disabled?: string[];
           analysis_duration_minutes?: number;
           commute_days?: number;
           departure_time?: string;
@@ -351,6 +396,7 @@ export type Database = {
           onboarding_completed?: boolean;
           rain_threshold?: number;
           return_time?: string;
+          temperature_offset?: number;
           timezone?: string;
           updated_at?: string;
           user_id?: string;
@@ -392,6 +438,18 @@ export type Database = {
         Returns: string;
       };
       run_retention: { Args: Record<PropertyKey, never>; Returns: Json };
+      save_air_quality_batch: {
+        Args: {
+          p_fetched_at: string;
+          p_latitude: number;
+          p_location_key: string;
+          p_log: Json;
+          p_longitude: number;
+          p_rows: Json;
+          p_user_id: string;
+        };
+        Returns: number;
+      };
       save_forecast_batch: {
         Args: {
           p_fetched_at: string;

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isFreshEnough } from "@/features/commute/domain/freshness";
 import { analyzeUser } from "@/features/recommendations/recommendationService";
 import type { Database } from "@/lib/database.types";
 import { buildDashboardView } from "../domain/buildView";
@@ -39,6 +40,9 @@ export async function loadDashboard(input: {
       work: a.work,
       homeFetchedAt: a.homeFetchedAt,
       workFetchedAt: a.workFetchedAt,
+      // Old air quality must not look current (plan §23.5).
+      homeAir: isFreshEnough(a.homeAirFetchedAt, now) ? a.homeAir : [],
+      workAir: isFreshEnough(a.workAirFetchedAt, now) ? a.workAir : [],
       skipped: a.skipped,
       target: a.target,
       computed: a.computed,

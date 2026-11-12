@@ -24,6 +24,7 @@ const ALL: Advisory[] = [
   adv("wetRoad", "caution", { mm: 0.6 }),
   adv("rainNearWindow", "caution", { when: "before", hour: "08:00" }),
   adv("darkReturn", "caution", { risk: 30 }),
+  adv("pm25", "warning", { value: 88 }),
 ];
 
 const render = (
@@ -53,6 +54,7 @@ describe("AdvisoryChips", () => {
       expect(html).toContain("43");
       expect(html).toContain("12.3");
       expect(html).toContain("08:00");
+      expect(html).toContain("88");
       // next-intl prints the key path when a message is missing.
       expect(html).not.toContain("dashboard.advisory");
       expect(html).not.toContain("advisory.");
@@ -76,7 +78,7 @@ describe("AdvisoryChips", () => {
 
   it("shows only warnings on a car day", () => {
     const html = render("en", ALL, "car");
-    expect(html.match(/<li /g)).toHaveLength(2); // heat and thunderstorm
+    expect(html.match(/<li /g)).toHaveLength(3); // heat, thunderstorm and pm25
     expect(html).toContain("Thunderstorm");
     expect(html).not.toContain("UV");
   });

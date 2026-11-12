@@ -4,6 +4,13 @@ import { useActionState, useState } from "react";
 import { useTranslations } from "next-intl";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import {
+  ADVISORY_GROUP_NAMES,
+  TEMPERATURE_OFFSET_MAX,
+  TEMPERATURE_OFFSET_MIN,
+  type AdvisoryGroup,
+} from "@/features/commute/domain/advisoryGroups";
 import { TimeField } from "@/components/ui/time-field";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { saveCommuteSettings } from "../actions";
@@ -21,6 +28,9 @@ type Props = {
   durationMinutes: number;
   threshold: number;
   commuteDays: number;
+  /** Advisory settings: settings variant only (plan §23.6). */
+  advisoriesDisabled?: readonly AdvisoryGroup[];
+  temperatureOffset?: number;
 };
 
 /**
@@ -40,6 +50,12 @@ export function CommuteForm(initial: Props) {
   const [duration, setDuration] = useState(initial.durationMinutes);
   const [threshold, setThreshold] = useState(initial.threshold);
   const [days, setDays] = useState(initial.commuteDays);
+  const [disabled, setDisabled] = useState<readonly AdvisoryGroup[]>(
+    initial.advisoriesDisabled ?? [],
+  );
+  const [offset, setOffset] = useState(initial.temperatureOffset ?? 0);
+  const toggleGroup = (group: AdvisoryGroup, on: boolean) =>
+    setDisabled((d) => (on ? d.filter((g) => g !== group) : [...d, group]));
   const timeLabels = {
     hours: t("time.hours"),
     minutes: t("time.minutes"),
@@ -141,6 +157,60 @@ export function CommuteForm(initial: Props) {
           />
           <p className="mt-1 text-caption text-ink-3" aria-live="polite">
             {t("analysis.preview", { value: threshold })}
+          </p>
+        </section>
+      )}
+
+      {onboarding ? null : (
+        <section
+          aria-labelledby="advisories-title"
+          className={`${card} relative z-0`}
+        >
+          <h2 id="advisories-title" className={cardTitle}>
+            {t("advisories.title")}
+          </h2>
+          <p className="mt-1 text-caption text-ink-3">{t("advisories.note")}</p>
+          <ul className="mt-2 divide-y divide-divider">
+            {ADVISORY_GROUP_NAMES.map((group) => {
+              const on = !disabled.includes(group);
+              return (
+                <li
+                  key={group}
+                  className="flex min-h-14 items-center justify-between gap-3 py-2"
+                >
+                  <span id={`advisory-${group}`} className="text-body">
+                    {t(`advisories.groups.${group}`)}
+                  </span>
+                  <Switch
+                    checked={on}
+                    onChange={(next) => toggleGroup(group, next)}
+                    labelledBy={`advisory-${group}`}
+                  />
+                  {on ? null : (
+                    <input type="hidden" name="advisoryOff" value={group} />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p id="offset-label" className={`${fieldLabel} mt-4`}>
+            {t("advisories.offset")}
+            <span className="ml-2 font-semibold tabular-nums">
+              {offset > 0 ? `+${offset}` : offset}°
+            </span>
+          </p>
+          <Slider
+            name="temperatureOffset"
+            labelledBy="offset-label"
+            value={offset}
+            onChange={setOffset}
+            min={TEMPERATURE_OFFSET_MIN}
+            max={TEMPERATURE_OFFSET_MAX}
+            step={1}
+            valueText={`${offset > 0 ? "+" : ""}${offset}°`}
+          />
+          <p className="mt-1 text-caption text-ink-3" aria-live="polite">
+            {t("advisories.offsetHint")}
           </p>
         </section>
       )}

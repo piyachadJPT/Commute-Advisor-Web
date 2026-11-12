@@ -93,7 +93,29 @@ describe("settings defaults (§6.1)", () => {
       locale: null,
       onboarding_completed: false,
       home_latitude: null,
+      advisories_disabled: [],
+      temperature_offset: 0,
     });
+  });
+
+  it("accepts known advisory groups and an offset from -3 to 3, and the owner can change them", async () => {
+    const { error } = await a.client
+      .from("settings")
+      .update({
+        advisories_disabled: ["sun", "airQuality"],
+        temperature_offset: -3,
+      })
+      .eq("user_id", a.id);
+    expect(error).toBeNull();
+    const back = await a.client
+      .from("settings")
+      .update({ advisories_disabled: [], temperature_offset: 3 })
+      .eq("user_id", a.id);
+    expect(back.error).toBeNull();
+    await a.client
+      .from("settings")
+      .update({ temperature_offset: 0 })
+      .eq("user_id", a.id);
   });
 
   it.each([
@@ -108,6 +130,11 @@ describe("settings defaults (§6.1)", () => {
     ["latitude without longitude", { home_latitude: 13.7 }],
     ["longitude without latitude", { work_longitude: 100.5 }],
     ["latitude out of range", { home_latitude: 91, home_longitude: 100 }],
+    ["offset above 3", { temperature_offset: 4 }],
+    ["offset below -3", { temperature_offset: -4 }],
+    // Thunderstorm and heavy rain are not groups: they can never be switched off.
+    ["thunderstorm as a group", { advisories_disabled: ["thunderstorm"] }],
+    ["an unknown group", { advisories_disabled: ["sun", "nope"] }],
   ])("rejects %s", async (_name, patch) => {
     const { error } = await a.client
       .from("settings")
@@ -210,6 +237,33 @@ describe("update_location (§6.2)", () => {
     expect(error?.code).toBe(PG.insufficientPrivilege);
   });
 });
+
+const aqHour = (h: number, extra: Record<string, unknown> = {}) => ({
+  forecast_time: `2026-11-11T${String(h).padStart(2, "0")}:00:00Z`,
+  pm2_5: 41.5,
+  pm10: 60,
+  ...extra,
+});
+
+function airBatch(
+  client: TestUser["client"],
+  userId: string,
+  key: "home" | "work",
+  lat: number,
+  lon: number,
+  rows: unknown[],
+  logBody: unknown = log(),
+) {
+  return client.rpc("save_air_quality_batch", {
+    p_user_id: userId,
+    p_location_key: key,
+    p_latitude: lat,
+    p_longitude: lon,
+    p_fetched_at: "2026-11-11T06:12:00Z",
+    p_rows: rows as never,
+    p_log: logBody as never,
+  });
+}
 
 describe("save_forecast_batch (§6.9)", () => {
   beforeAll(async () => {
@@ -440,5 +494,135 @@ describe("save_forecast_batch (§6.9)", () => {
     );
     expect(svc.error).toBeNull();
     expect(svc.data).toBe(1);
+  });
+});
+
+describe("save_air_quality_batch (plan §23.5)", () => {
+  const airCount = async (userId: string) =>
+    (
+      await admin()
+        .from("hourly_air_quality")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+    ).count ?? 0;
+  const logSources = async (userId: string) =>
+    (
+      await admin()
+        .from("forecast_sync_logs")
+        .select("source, status")
+        .eq("user_id", userId)
+        .order("id")
+    ).data ?? [];
+
+  it("saves rows and a log with source air_quality, and upserts on the same hour", async () => {
+    const before = (await logSources(b.id)).length;
+    const first = await airBatch(b.client, b.id, "home", 13.756, 100.502, [
+      aqHour(3),
+      aqHour(4),
+    ]);
+    expect(first.error).toBeNull();
+    expect(first.data).toBe(2);
+    expect(await airCount(b.id)).toBe(2);
+
+    const again = await airBatch(b.client, b.id, "home", 13.756, 100.502, [
+      aqHour(3, { pm2_5: 99 }),
+      aqHour(4),
+    ]);
+    expect(again.error).toBeNull();
+    expect(await airCount(b.id)).toBe(2); // no duplicate rows
+
+    const row = await admin()
+      .from("hourly_air_quality")
+      .select("pm2_5")
+      .eq("user_id", b.id)
+      .eq("forecast_time", "2026-11-11T03:00:00Z")
+      .single();
+    expect(row.data?.pm2_5).toBe(99);
+
+    const logs = await logSources(b.id);
+    expect(logs.slice(before).map((l) => l.source)).toEqual([
+      "air_quality",
+      "air_quality",
+    ]);
+    // Forecast logs written earlier keep the default source.
+    expect(logs.slice(0, before).every((l) => l.source === "forecast")).toBe(
+      true,
+    );
+  });
+
+  it("rejects a negative concentration and writes nothing", async () => {
+    const before = await airCount(b.id);
+    const logsBefore = (await logSources(b.id)).length;
+    const res = await airBatch(b.client, b.id, "home", 13.756, 100.502, [
+      aqHour(5, { pm2_5: -1 }),
+    ]);
+    expect(res.error?.code).toBe(PG.checkViolation);
+    expect(await airCount(b.id)).toBe(before);
+    expect((await logSources(b.id)).length).toBe(logsBefore);
+  });
+
+  it("refuses a batch for a location that is no longer configured", async () => {
+    const res = await airBatch(b.client, b.id, "home", 12.0, 99.0, [aqHour(6)]);
+    expect(res.error?.message).toBe("location_changed");
+  });
+
+  it("with no rows, writes only the log", async () => {
+    const before = await airCount(b.id);
+    const { data, error } = await airBatch(
+      b.client,
+      b.id,
+      "home",
+      13.756,
+      100.502,
+      [],
+      log({ status: "failed", response_code: 429 }),
+    );
+    expect(error).toBeNull();
+    expect(data).toBe(0);
+    expect(await airCount(b.id)).toBe(before);
+    const logs = await logSources(b.id);
+    expect(logs[logs.length - 1]).toEqual({
+      source: "air_quality",
+      status: "failed",
+    });
+  });
+
+  it("cannot be used to write another user's data, and is not callable by anon", async () => {
+    const other = await airBatch(a.client, b.id, "home", 13.756, 100.502, [
+      aqHour(7),
+    ]);
+    expect(other.error).not.toBeNull();
+    const anon = await airBatch(anonClient(), b.id, "home", 13.756, 100.502, [
+      aqHour(7),
+    ]);
+    expect(anon.error?.code).toBe(PG.insufficientPrivilege);
+  });
+
+  it("update_location purges that location's air quality and keeps the other", async () => {
+    // `a` has both locations from the update_location tests above.
+    const row = (key: "home" | "work") => ({
+      user_id: a.id,
+      location_key: key,
+      latitude: 13.7,
+      longitude: 100.5,
+      forecast_time: "2026-11-11T01:00:00Z",
+      fetched_at: "2026-11-11T00:00:00Z",
+      pm2_5: 10,
+    });
+    await admin()
+      .from("hourly_air_quality")
+      .insert([row("home"), row("work")]);
+    const moved = await a.client.rpc("update_location", {
+      p_key: "home",
+      p_latitude: 13.8,
+      p_longitude: 100.6,
+      p_name: "Moved",
+    });
+    expect(moved.error).toBeNull();
+    const rest = await admin()
+      .from("hourly_air_quality")
+      .select("location_key")
+      .eq("user_id", a.id);
+    expect(rest.data).toEqual([{ location_key: "work" }]);
   });
 });

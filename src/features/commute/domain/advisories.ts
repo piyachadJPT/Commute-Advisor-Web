@@ -1,3 +1,4 @@
+import { ADVISORY_GROUPS, type AdvisoryGroup } from "./advisoryGroups";
 import { isHigh } from "./analyzer";
 import { ADVISORY_THRESHOLDS as T } from "./advisoryThresholds";
 import { HOUR_MS, localTimeOf } from "./tz";
@@ -5,6 +6,7 @@ import type {
   Advisory,
   AdvisoryCode,
   AdvisoryLevel,
+  HourlyAirQuality,
   HourlyWeather,
   LocationKey,
   TripAnalysis,
@@ -16,6 +18,7 @@ const LOCATIONS: LocationKey[] = ["home", "work"]; // home first: a tie goes to 
 const PRIORITY: AdvisoryCode[] = [
   "thunderstorm",
   "heavyRain",
+  "pm25",
   "heat",
   "cold",
   "lowVisibility",
@@ -81,14 +84,37 @@ export function computeAdvisories(input: {
   threshold: number;
   home: readonly HourlyWeather[];
   work: readonly HourlyWeather[];
+  /** Air quality the caller already judged fresh enough to use; none means no `pm25`. */
+  homeAir?: readonly HourlyAirQuality[];
+  workAir?: readonly HourlyAirQuality[];
+  /** Groups the user turned off; `thunderstorm` and `heavyRain` are in none (plan §23.6). */
+  disabledGroups?: readonly AdvisoryGroup[];
+  /** °C added to the heat and cold thresholds (plan §23.6). */
+  temperatureOffset?: number;
   timeZone: string;
 }): Advisory[] {
+  const offset = input.temperatureOffset ?? 0;
+  const heatT = {
+    caution: T.heat.caution + offset,
+    warning: T.heat.warning + offset,
+  };
+  const coldT = {
+    caution: T.cold.caution + offset,
+    warning: T.cold.warning + offset,
+  };
+  const off = new Set<AdvisoryCode>(
+    (input.disabledGroups ?? []).flatMap((g) => ADVISORY_GROUPS[g]),
+  );
   const byLocation: Record<LocationKey, Map<number, HourlyWeather>> = {
     home: new Map(input.home.map((r) => [r.time.getTime(), r])),
     work: new Map(input.work.map((r) => [r.time.getTime(), r])),
   };
   const at = (location: LocationKey, time: Date) =>
     byLocation[location].get(time.getTime()) ?? null;
+  const airByLocation: Record<LocationKey, Map<number, HourlyAirQuality>> = {
+    home: new Map((input.homeAir ?? []).map((r) => [r.time.getTime(), r])),
+    work: new Map((input.workAir ?? []).map((r) => [r.time.getTime(), r])),
+  };
 
   const out: Advisory[] = [];
   for (const trip of [input.departure, input.returnTrip]) {
@@ -112,13 +138,13 @@ export function computeAdvisories(input: {
     // --- values from the window's own buckets -------------------------------------------
     const heat = worst(inWindow, (r) => r.apparentTemperature, "max");
     if (heat) {
-      add("heat", levelAtOrAbove(heat.value, T.heat), heat.source, {
+      add("heat", levelAtOrAbove(heat.value, heatT), heat.source, {
         value: Math.round(heat.value),
       });
     }
     const cold = worst(inWindow, (r) => r.apparentTemperature, "min");
     if (cold) {
-      add("cold", levelAtOrBelow(cold.value, T.cold), cold.source, {
+      add("cold", levelAtOrBelow(cold.value, coldT), cold.source, {
         value: Math.round(cold.value),
       });
     }
@@ -145,6 +171,28 @@ export function computeAdvisories(input: {
       add("heavyRain", levelAtOrAbove(rain.value, T.heavyRain), rain.source, {
         mm: round1(rain.value),
       });
+    }
+    // PM2.5: the highest value over the window's buckets at either location.
+    let pm: Worst | null = null;
+    for (const location of LOCATIONS) {
+      for (const time of trip.window.bucketTimes) {
+        const v = airByLocation[location].get(time.getTime())?.pm25;
+        if (v !== null && v !== undefined && (pm === null || v > pm.value)) {
+          pm = { value: v, source: location };
+        }
+      }
+    }
+    if (pm) {
+      add(
+        "pm25",
+        pm.value > T.pm25.warning
+          ? "warning"
+          : pm.value > T.pm25.caution
+            ? "caution"
+            : null,
+        pm.source,
+        { value: Math.round(pm.value) },
+      );
     }
     const storm = inWindow.find(
       ({ row }) =>
@@ -227,5 +275,5 @@ export function computeAdvisories(input: {
     (a.level === "warning" ? 0 : 1000) +
     PRIORITY.indexOf(a.code) * 10 +
     (a.trip === "departure" ? 0 : 1);
-  return out.sort((a, b) => rank(a) - rank(b));
+  return out.filter((a) => !off.has(a.code)).sort((a, b) => rank(a) - rank(b));
 }

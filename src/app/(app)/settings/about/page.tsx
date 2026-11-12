@@ -104,6 +104,16 @@ async function AboutContent() {
             CC BY 4.0
           </a>
         </p>
+        <p className="mt-3 text-caption text-ink-3">
+          <a
+            href="https://open-meteo.com/en/docs/air-quality-api"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4"
+          >
+            {t("credit.air")}
+          </a>
+        </p>
       </section>
     </div>
   );

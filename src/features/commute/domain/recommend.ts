@@ -1,10 +1,11 @@
 import { computeAdvisories } from "./advisories";
 import { analyzeTrip, decide } from "./analyzer";
-import { freshnessOf, olderOf } from "./freshness";
+import { freshnessOf, isFreshEnough, olderOf } from "./freshness";
 import { deriveReason } from "./reasons";
 import type {
   CommuteSettings,
   ComputedRecommendation,
+  HourlyAirQuality,
   HourlyWeather,
   Instant,
   LocalDate,
@@ -22,10 +23,20 @@ export function computeRecommendation(input: {
   work: readonly HourlyWeather[];
   homeFetchedAt: Instant | null;
   workFetchedAt: Instant | null;
+  /** Air quality is optional and never affects freshness or the vehicle (plan §23.5). */
+  homeAir?: readonly HourlyAirQuality[];
+  workAir?: readonly HourlyAirQuality[];
+  homeAirFetchedAt?: Instant | null;
+  workAirFetchedAt?: Instant | null;
   now: Instant;
 }): ComputedRecommendation {
   const { date, settings, home, work } = input;
   const { timeZone, threshold, durationMinutes } = settings;
+  // An air-quality value fetched more than 6 h ago must not look current (plan §5.5, §23.5).
+  const usableAir = (
+    rows: readonly HourlyAirQuality[] | undefined,
+    fetchedAt: Instant | null | undefined,
+  ) => (rows && isFreshEnough(fetchedAt, input.now) ? rows : []);
 
   const departure = analyzeTrip(
     mapWindow(
@@ -60,6 +71,10 @@ export function computeRecommendation(input: {
       threshold,
       home,
       work,
+      homeAir: usableAir(input.homeAir, input.homeAirFetchedAt),
+      workAir: usableAir(input.workAir, input.workAirFetchedAt),
+      disabledGroups: settings.advisoriesDisabled,
+      temperatureOffset: settings.temperatureOffset,
       timeZone,
     }),
   };

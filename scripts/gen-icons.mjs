@@ -32,6 +32,7 @@ const ICONS = [
   "thermostat",
   "ac_unit",
   "bedtime",
+  "masks",
 ];
 
 const base = "node_modules/@material-symbols/svg-400/outlined";

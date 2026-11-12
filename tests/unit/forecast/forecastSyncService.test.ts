@@ -5,6 +5,7 @@ import {
   OpenMeteoError,
   type HourlyRow,
 } from "@/features/forecast/data/openMeteoClient";
+import type { AirQualityRow } from "@/features/forecast/data/airQualityClient";
 
 vi.mock("@/features/settings/data/settingsRepo", () => ({
   getUserLocations: vi.fn(),
@@ -14,6 +15,11 @@ vi.mock("@/features/forecast/data/forecastRepo", () => ({
   saveForecastBatch: vi.fn(),
 }));
 
+vi.mock("@/features/forecast/data/airQualityRepo", () => ({
+  saveAirQualityBatch: vi.fn(),
+}));
+
+import { saveAirQualityBatch } from "@/features/forecast/data/airQualityRepo";
 import {
   getLastSuccessfulFetch,
   saveForecastBatch,
@@ -52,12 +58,25 @@ const row: HourlyRow = {
   is_day: null,
 };
 
+const airRow: AirQualityRow = {
+  forecast_time: "2026-11-11T02:00:00.000Z",
+  pm2_5: 20,
+  pm10: 30,
+};
+
 const run = (
   fetchForecast: (o: { latitude: number }) => Promise<HourlyRow[]>,
   trigger: "scheduled" | "manual" | "pre_notification" = "scheduled",
+  fetchAirQuality: (o: {
+    latitude: number;
+  }) => Promise<AirQualityRow[]> = async () => [airRow],
 ) =>
   syncUserForecasts(
-    { supabase, fetchForecast: fetchForecast as never },
+    {
+      supabase,
+      fetchForecast: fetchForecast as never,
+      fetchAirQuality: fetchAirQuality as never,
+    },
     { userId: "u1", trigger, now: NOW },
   );
 
@@ -69,6 +88,7 @@ beforeEach(() => {
   });
   vi.mocked(getLastSuccessfulFetch).mockResolvedValue(null);
   vi.mocked(saveForecastBatch).mockResolvedValue({ ok: true, saved: 1 });
+  vi.mocked(saveAirQualityBatch).mockResolvedValue({ ok: true, saved: 1 });
 });
 
 describe("syncUserForecasts", () => {
@@ -194,5 +214,96 @@ describe("syncUserForecasts", () => {
     const fetchForecast = vi.fn().mockResolvedValue([row]);
     await run(fetchForecast as never, "manual");
     expect(fetchForecast).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("syncUserForecasts: air quality (plan §23.5)", () => {
+  const airCalls = () =>
+    vi.mocked(saveAirQualityBatch).mock.calls.map((c) => c[1]);
+
+  it("saves air quality for both locations after the forecast, with a success log", async () => {
+    await run(async () => [row]);
+    expect(airCalls().map((c) => c.locationKey)).toEqual(["home", "work"]);
+    expect(airCalls()[0]).toMatchObject({
+      rows: [airRow],
+      fetchedAt: NOW,
+      latitude: 13.756,
+      log: { trigger: "scheduled", status: "success" },
+    });
+  });
+
+  it("a failing air-quality API logs a failure and leaves the forecast result untouched", async () => {
+    const results = await run(
+      async () => [row],
+      "scheduled",
+      async () => {
+        throw new OpenMeteoError("rate_limited", "429 after 3", 429);
+      },
+    );
+    expect(results).toEqual([
+      { key: "home", status: "success", records: 1 },
+      { key: "work", status: "success", records: 1 },
+    ]);
+    expect(airCalls()).toHaveLength(2);
+    expect(airCalls()[0]).toMatchObject({
+      rows: [], // nothing cached is overwritten
+      log: { status: "failed", responseCode: 429 },
+    });
+    // The forecast batches are the same as without any air-quality problem.
+    expect(
+      vi.mocked(saveForecastBatch).mock.calls.map((c) => c[1].log.status),
+    ).toEqual(["success", "success"]);
+  });
+
+  it("still fetches air quality when the forecast fails, and reports only the forecast", async () => {
+    const results = await run(async () => {
+      throw new OpenMeteoError("http", "HTTP 503", 503);
+    });
+    expect(results.map((r) => r.status)).toEqual(["failed", "failed"]);
+    expect(airCalls().map((c) => c.log.status)).toEqual(["success", "success"]);
+  });
+
+  it("an air-quality database error never throws or changes the forecast result", async () => {
+    vi.mocked(saveAirQualityBatch).mockRejectedValue(new Error("db down"));
+    const results = await run(async () => [row]);
+    expect(results.map((r) => r.status)).toEqual(["success", "success"]);
+  });
+
+  it("uses its own last-fetch time, so a fresh forecast does not skip air quality", async () => {
+    vi.mocked(getLastSuccessfulFetch).mockImplementation(
+      async (_s, _u, _k, source) =>
+        source === "air_quality" ? null : new Date(NOW.getTime() - 5 * 60_000),
+    );
+    const fetchForecast = vi.fn();
+    await run(fetchForecast as never);
+    expect(fetchForecast).not.toHaveBeenCalled(); // forecast is fresh
+    expect(airCalls().map((c) => c.log.status)).toEqual(["success", "success"]);
+    expect(
+      vi.mocked(getLastSuccessfulFetch).mock.calls.map((c) => c[3]),
+    ).toContain("air_quality");
+  });
+
+  it("skips fresh air quality, and logs the skip only for non-scheduled triggers", async () => {
+    vi.mocked(getLastSuccessfulFetch).mockResolvedValue(
+      new Date(NOW.getTime() - 5 * 60_000),
+    );
+    const fetchAirQuality = vi.fn();
+    await run(vi.fn() as never, "scheduled", fetchAirQuality as never);
+    expect(airCalls()).toHaveLength(0);
+    await run(vi.fn() as never, "manual", fetchAirQuality as never);
+    expect(fetchAirQuality).not.toHaveBeenCalled();
+    expect(airCalls().map((c) => c.log)).toEqual([
+      { trigger: "manual", status: "skipped" },
+      { trigger: "manual", status: "skipped" },
+    ]);
+  });
+
+  it("does nothing for a location that is not configured", async () => {
+    vi.mocked(getUserLocations).mockResolvedValue({
+      timeZone: "Asia/Bangkok",
+      locations: [work],
+    });
+    await run(async () => [row]);
+    expect(airCalls().map((c) => c.locationKey)).toEqual(["work"]);
   });
 });

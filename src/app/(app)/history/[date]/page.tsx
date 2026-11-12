@@ -6,13 +6,14 @@ import { Icon } from "@/components/icon";
 import { riskLevelOf } from "@/features/commute/domain/labels";
 import { asLocalDate, zonedToInstant } from "@/features/commute/domain/tz";
 import type { LocalDate, LocalTime } from "@/features/commute/domain/types";
+import { AdvisoryChips } from "@/features/dashboard/ui/advisory-chips";
 import { RISK_STYLE, VEHICLE_STYLE } from "@/features/dashboard/ui/risk-style";
 import { monthOf } from "@/features/history/domain/buildHistory";
 import { getRecommendations } from "@/features/recommendations/data/recommendationRepo";
 import { listSkippedDays } from "@/features/recommendations/data/skipDayRepo";
 import { renderReasonText } from "@/features/recommendations/reasonText";
 import { getUserSettings } from "@/features/settings/data/settingsRepo";
-import { card, quietButton } from "@/features/settings/ui/styles";
+import { card, cardTitle, quietButton } from "@/features/settings/ui/styles";
 import { defaultLocale, isLocale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -181,6 +182,29 @@ async function DayContent({
           );
         })}
       </section>
+
+      {rec.advisories.length > 0 ? (
+        // Only what was stored at lock. No "none" line when empty: that would read as an all clear.
+        <section
+          aria-labelledby="day-advisories-title"
+          className={`${card} mt-4 max-w-2xl`}
+        >
+          <h2 id="day-advisories-title" className={cardTitle}>
+            {t("advisories")}
+          </h2>
+          {(["departure", "return"] as const).map((type) => {
+            const list = rec.advisories.filter((a) => a.trip === type);
+            return list.length === 0 ? null : (
+              <div key={type} className="mt-3">
+                <p className="text-caption font-medium text-ink-3">
+                  {td(`trip.${type}`)}
+                </p>
+                <AdvisoryChips advisories={list} vehicle="unknown" />
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
 
       <section className={`${card} mt-4 max-w-2xl`}>
         <dl className="space-y-2 text-label">

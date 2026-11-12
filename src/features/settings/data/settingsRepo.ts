@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import {
+  ADVISORY_GROUP_NAMES,
+  type AdvisoryGroup,
+} from "@/features/commute/domain/advisoryGroups";
 import { asLocalTime } from "@/features/commute/domain/tz";
 import type {
   CommuteSettings,
@@ -83,6 +87,8 @@ export type UserSettings = {
   threshold: number;
   commuteDays: number;
   timeZone: string;
+  advisoriesDisabled: AdvisoryGroup[];
+  temperatureOffset: number;
   notificationTime: string; // "HH:mm"
   notificationsEnabled: boolean;
   /** null = follow the browser; the tick falls back to Thai. */
@@ -100,7 +106,7 @@ export async function getUserSettings(
   const { data, error } = await supabase
     .from("settings")
     .select(
-      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, notification_time, notifications_enabled, locale, onboarding_completed, home_latitude, home_name, work_latitude, work_name",
+      "departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, advisories_disabled, temperature_offset, notification_time, notifications_enabled, locale, onboarding_completed, home_latitude, home_name, work_latitude, work_name",
     )
     .eq("user_id", userId)
     .maybeSingle();
@@ -113,6 +119,11 @@ export async function getUserSettings(
     threshold: data.rain_threshold,
     commuteDays: data.commute_days,
     timeZone: data.timezone,
+    // The database check allows only known names; filtering keeps the type honest anyway.
+    advisoriesDisabled: ADVISORY_GROUP_NAMES.filter((g) =>
+      data.advisories_disabled.includes(g),
+    ),
+    temperatureOffset: data.temperature_offset,
     notificationTime: data.notification_time.slice(0, 5),
     notificationsEnabled: data.notifications_enabled,
     locale: data.locale === "th" || data.locale === "en" ? data.locale : null,
@@ -128,6 +139,8 @@ export type CommutePatch = {
   durationMinutes: number;
   threshold: number;
   commuteDays: number;
+  advisoriesDisabled: readonly AdvisoryGroup[];
+  temperatureOffset: number;
 };
 
 export async function updateCommuteSettings(
@@ -143,6 +156,8 @@ export async function updateCommuteSettings(
       analysis_duration_minutes: patch.durationMinutes,
       rain_threshold: patch.threshold,
       commute_days: patch.commuteDays,
+      advisories_disabled: [...patch.advisoriesDisabled],
+      temperature_offset: patch.temperatureOffset,
     })
     .eq("user_id", userId);
   if (error) throw new Error(`settings update failed: ${error.message}`);
@@ -157,6 +172,8 @@ export function toCommuteSettings(s: UserSettings): CommuteSettings {
     threshold: s.threshold,
     commuteDays: s.commuteDays,
     timeZone: s.timeZone,
+    advisoriesDisabled: s.advisoriesDisabled,
+    temperatureOffset: s.temperatureOffset,
   };
 }
 

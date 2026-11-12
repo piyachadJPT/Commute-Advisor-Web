@@ -14,13 +14,19 @@ import {
 import type {
   CommuteSettings,
   ComputedRecommendation,
+  HourlyAirQuality,
   HourlyWeather,
   Instant,
   LocalDate,
   LocalTime,
 } from "@/features/commute/domain/types";
+import { getHourlyAirQuality } from "@/features/forecast/data/airQualityRepo";
 import { getHourlyForecasts } from "@/features/forecast/data/forecastRepo";
-import { latestFetch, toHourlyWeather } from "@/features/forecast/data/mapping";
+import {
+  latestFetch,
+  toHourlyAirQuality,
+  toHourlyWeather,
+} from "@/features/forecast/data/mapping";
 import {
   getUserSettings,
   toCommuteSettings,
@@ -49,6 +55,11 @@ export type Analysis =
       work: HourlyWeather[];
       homeFetchedAt: Instant | null;
       workFetchedAt: Instant | null;
+      /** Air quality as stored; callers judge freshness (plan §23.5). */
+      homeAir: HourlyAirQuality[];
+      workAir: HourlyAirQuality[];
+      homeAirFetchedAt: Instant | null;
+      workAirFetchedAt: Instant | null;
       computed: ComputedRecommendation;
       stored: Map<string, StoredRecommendation>;
       /** This call set the target day's lock (plan §5.7). */
@@ -93,15 +104,25 @@ export async function analyzeUser(input: {
   const lastDate =
     target > addDays(weekStart, 6) ? target : addDays(weekStart, 6);
 
-  const [homeRows, workRows, stored] = await Promise.all([
-    getHourlyForecasts(supabase, userId, "home", from, to),
-    getHourlyForecasts(supabase, userId, "work", from, to),
-    getRecommendations(supabase, userId, weekStart, lastDate),
-  ]);
+  // Air quality is optional: if it cannot be read, the recommendation is unaffected (§23.1).
+  const airRows = (location: "home" | "work") =>
+    getHourlyAirQuality(supabase, userId, location, from, to).catch(() => []);
+  const [homeRows, workRows, stored, homeAirRows, workAirRows] =
+    await Promise.all([
+      getHourlyForecasts(supabase, userId, "home", from, to),
+      getHourlyForecasts(supabase, userId, "work", from, to),
+      getRecommendations(supabase, userId, weekStart, lastDate),
+      airRows("home"),
+      airRows("work"),
+    ]);
   const home = homeRows.map(toHourlyWeather);
   const work = workRows.map(toHourlyWeather);
   const homeFetchedAt = latestFetch(homeRows);
   const workFetchedAt = latestFetch(workRows);
+  const homeAir = homeAirRows.map(toHourlyAirQuality);
+  const workAir = workAirRows.map(toHourlyAirQuality);
+  const homeAirFetchedAt = latestFetch(homeAirRows);
+  const workAirFetchedAt = latestFetch(workAirRows);
 
   const computed = computeRecommendation({
     date: target,
@@ -110,6 +131,10 @@ export async function analyzeUser(input: {
     work,
     homeFetchedAt,
     workFetchedAt,
+    homeAir,
+    workAir,
+    homeAirFetchedAt,
+    workAirFetchedAt,
     now,
   });
 
@@ -150,6 +175,10 @@ export async function analyzeUser(input: {
     work,
     homeFetchedAt,
     workFetchedAt,
+    homeAir,
+    workAir,
+    homeAirFetchedAt,
+    workAirFetchedAt,
     computed,
     stored,
     lockedNow,

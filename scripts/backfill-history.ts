@@ -25,6 +25,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { ADVISORY_GROUP_NAMES } from "@/features/commute/domain/advisoryGroups";
 import {
   addDays,
   asLocalTime,
@@ -143,6 +144,8 @@ async function main() {
     threshold: 50,
     commuteDays: 31,
     timeZone: "Asia/Bangkok",
+    advisoriesDisabled: [],
+    temperatureOffset: 0,
   };
 
   let settings = defaults;
@@ -169,7 +172,7 @@ async function main() {
     const { data: rows, error } = await db
       .from("settings")
       .select(
-        "user_id, departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, home_latitude, home_longitude, work_latitude, work_longitude",
+        "user_id, departure_time, return_time, analysis_duration_minutes, rain_threshold, commute_days, timezone, advisories_disabled, temperature_offset, home_latitude, home_longitude, work_latitude, work_longitude",
       );
     if (error) throw new Error(`settings read failed: ${error.message}`);
     const wanted = option("user-id");
@@ -214,6 +217,10 @@ async function main() {
       threshold: s.rain_threshold,
       commuteDays: s.commute_days,
       timeZone: s.timezone,
+      advisoriesDisabled: ADVISORY_GROUP_NAMES.filter((g) =>
+        s.advisories_disabled.includes(g),
+      ),
+      temperatureOffset: s.temperature_offset,
     };
     home ??=
       s.home_latitude !== null && s.home_longitude !== null

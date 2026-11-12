@@ -1,4 +1,5 @@
 // Domain types (plan §7). Pure: no imports from next, react, @supabase/* or browser APIs.
+import type { AdvisoryGroup } from "./advisoryGroups";
 
 export type Vehicle = "car" | "motorcycle" | "unknown";
 export type RainRiskLevel = "veryLow" | "low" | "high" | "veryHigh" | "unknown";
@@ -33,6 +34,15 @@ export type HourlyWeather = {
   visibility: number | null;
   /** Daylight at the label time, instant. */
   isDay: boolean | null;
+};
+
+/** One hourly air-quality row (plan §23.5). `time` is the label, a value at that instant. */
+export type HourlyAirQuality = {
+  time: Instant;
+  location: LocationKey;
+  /** µg/m³, CAMS model estimate. */
+  pm25: number | null;
+  pm10: number | null;
 };
 
 export type CommuteWindow = {
@@ -73,6 +83,13 @@ export type CommuteSettings = {
   /** Bitmask: Mon=1, Tue=2, Wed=4 ... Sun=64. */
   commuteDays: number;
   timeZone: string;
+  /** Advisory groups the user turned off in Settings (plan §23.6). */
+  advisoriesDisabled: readonly AdvisoryGroup[];
+  /**
+   * °C added to the heat and cold thresholds, -3..+3. Positive means "I feel colder than the
+   * forecast": cold warns sooner, heat later.
+   */
+  temperatureOffset: number;
 };
 
 /**
@@ -113,7 +130,8 @@ export type AdvisoryCode =
   | "heavyRain"
   | "wetRoad"
   | "rainNearWindow"
-  | "darkReturn";
+  | "darkReturn"
+  | "pm25";
 export type AdvisoryLevel = "caution" | "warning";
 
 /**

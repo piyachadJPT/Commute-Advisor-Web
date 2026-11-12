@@ -4,6 +4,8 @@ import {
   addDays,
 } from "@/features/commute/domain/tz";
 import type {
+  Advisory,
+  AdvisoryCode,
   CommuteType,
   ComputedRecommendation,
   Reason,
@@ -15,6 +17,71 @@ export type PushPayload = { title: string; body: string; url: "/" };
 export type Locale = "th" | "en";
 
 const DEFAULT_THRESHOLD = 50;
+
+/**
+ * Longest body a lock-screen preview is expected to show whole (plan §23.6). Advisories are
+ * dropped to fit; the recommendation never is.
+ */
+export const MAX_BODY_LENGTH = 95;
+const MAX_ADVISORIES = 2;
+
+type Params = Advisory["params"];
+const advisoryText: Record<
+  Locale,
+  Record<AdvisoryCode, (p: Params) => string>
+> = {
+  th: {
+    thunderstorm: () => "พายุฝนฟ้าคะนอง",
+    heavyRain: () => "ฝนหนัก",
+    pm25: (p) => `ฝุ่น PM2.5 ${p.value} ใส่ N95`,
+    heat: (p) => `ร้อน รู้สึก ${p.value}°`,
+    cold: (p) => `หนาว รู้สึก ${p.value}°`,
+    lowVisibility: () => "ทัศนวิสัยต่ำ",
+    gust: (p) => `ลมกระโชก ${p.value} กม./ชม.`,
+    wetRoad: () => "ถนนเปียก",
+    rainNearWindow: () => "ฝนใกล้ช่วงเดินทาง",
+    darkReturn: () => "ฝนตอนมืด",
+    uv: (p) => `UV ${p.value}`,
+  },
+  en: {
+    thunderstorm: () => "thunderstorm risk",
+    heavyRain: () => "heavy rain",
+    pm25: (p) => `PM2.5 ${p.value}, wear N95`,
+    heat: (p) => `hot, feels like ${p.value}°`,
+    cold: (p) => `cold, feels like ${p.value}°`,
+    lowVisibility: () => "low visibility",
+    gust: (p) => `gusts ${p.value} km/h`,
+    wetRoad: () => "wet roads",
+    rainNearWindow: () => "rain near the trip",
+    darkReturn: () => "rain after dark",
+    uv: (p) => `UV ${p.value}`,
+  },
+};
+
+/**
+ * The first `MAX_ADVISORIES` advisories, one per code (the list is already ordered by
+ * importance, plan §23.2), joined after the main line. Fewer are added until the body fits;
+ * with none that fit, the body is the main line alone.
+ */
+function withAdvisories(
+  main: string,
+  advisories: readonly Advisory[],
+  locale: Locale,
+): string {
+  const seen = new Set<AdvisoryCode>();
+  const picked: string[] = [];
+  for (const a of advisories) {
+    if (seen.has(a.code)) continue;
+    seen.add(a.code);
+    picked.push(advisoryText[locale][a.code](a.params));
+    if (picked.length === MAX_ADVISORIES) break;
+  }
+  for (let n = picked.length; n > 0; n--) {
+    const body = [main, ...picked.slice(0, n)].join(" · ");
+    if (body.length <= MAX_BODY_LENGTH) return body;
+  }
+  return main;
+}
 
 const text = {
   th: {
@@ -141,6 +208,10 @@ export function buildNotification(input: {
   }
   return make(
     "recommendation",
-    `${verdict} · ${shortReason(computed.reason, locale)}`,
+    withAdvisories(
+      `${verdict} · ${shortReason(computed.reason, locale)}`,
+      computed.advisories,
+      locale,
+    ),
   );
 }

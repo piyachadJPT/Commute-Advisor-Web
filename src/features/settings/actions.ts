@@ -24,6 +24,9 @@ export async function saveCommuteSettings(
     durationMinutes: text(formData.get("durationMinutes")),
     threshold: text(formData.get("threshold")),
     commuteDays: formData.getAll("day").map((v) => Number(v)),
+    // Onboarding does not show the advisory settings: absent means the defaults.
+    advisoriesDisabled: formData.getAll("advisoryOff").map((v) => text(v)),
+    temperatureOffset: text(formData.get("temperatureOffset")) || "0",
   });
   if (!parsed.success) return { status: "invalid" };
 

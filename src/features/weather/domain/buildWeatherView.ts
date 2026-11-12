@@ -3,6 +3,7 @@ import { addDays, zonedToInstant } from "@/features/commute/domain/tz";
 import type {
   CommuteSettings,
   CommuteType,
+  HourlyAirQuality,
   HourlyWeather,
   LocalDate,
   LocalTime,
@@ -22,6 +23,8 @@ export type WeatherHour = {
   apparentTemperature: number | null;
   uvIndex: number | null;
   windGusts: number | null;
+  /** PM2.5 in µg/m³ from the air-quality rows; a model estimate. */
+  pm25: number | null;
   /** The commute window this bucket belongs to, if any (departure wins an overlap). */
   trip: CommuteType | null;
 };
@@ -49,12 +52,17 @@ const pad = (n: number) => String(n).padStart(2, "0");
  */
 export function buildWeatherView(input: {
   rows: readonly HourlyWeather[];
+  /** Air quality that is fresh enough to show; none means no PM2.5 column. */
+  air?: readonly HourlyAirQuality[];
   date: LocalDate;
   settings: CommuteSettings;
 }): WeatherView {
   const { rows, date, settings } = input;
   const tz = settings.timeZone;
   const byTime = new Map(rows.map((r) => [r.time.getTime(), r]));
+  const airByTime = new Map(
+    (input.air ?? []).map((r) => [r.time.getTime(), r]),
+  );
 
   const windows = (
     [
@@ -92,6 +100,7 @@ export function buildWeatherView(input: {
       apparentTemperature: row?.apparentTemperature ?? null,
       uvIndex: row?.uvIndex ?? null,
       windGusts: row?.windGusts ?? null,
+      pm25: airByTime.get(time.getTime())?.pm25 ?? null,
       trip: tripAt.get(time.getTime()) ?? null,
     };
   });

@@ -55,6 +55,8 @@ export const settings: CommuteSettings = {
   threshold: 50,
   commuteDays: 31,
   timeZone: TZ,
+  advisoriesDisabled: [],
+  temperatureOffset: 0,
 };
 
 type Probs = Record<string, number | null | undefined>; // label -> prob; undefined = no row

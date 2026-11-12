@@ -55,6 +55,19 @@ const TABLES: TableCase[] = [
     ops: { select: true, insert: true, update: true, delete: true },
   },
   {
+    name: "hourly_air_quality",
+    row: (user_id, n) => ({
+      user_id,
+      location_key: "home",
+      latitude: 13.756,
+      longitude: 100.502,
+      forecast_time: `2026-11-11T0${n}:00:00Z`,
+      fetched_at: "2026-11-11T00:00:00Z",
+    }),
+    patch: { pm2_5: 30 },
+    ops: { select: true, insert: true, update: true, delete: true },
+  },
+  {
     name: "daily_recommendations",
     row: (user_id, n) => ({
       user_id,

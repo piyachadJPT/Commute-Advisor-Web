@@ -74,22 +74,31 @@ function retryAfterMs(res: Response): number | null {
   return Number(raw) * 1000;
 }
 
+export type FetchJsonOptions = {
+  fetchImpl?: typeof fetch;
+  /** Injectable so tests do not really wait. */
+  sleep?: (ms: number) => Promise<void>;
+  timeoutMs?: number;
+  maxAttempts?: number;
+};
+
 /**
- * Fetches the 3-day hourly forecast for one location. Server-side only (plan §4.5).
+ * GETs one Open-Meteo URL and returns its parsed JSON. Server-side only (plan §4.5). Shared by
+ * the forecast and the air-quality clients, so both follow the same rules (plan §4.6):
  *
  * - Each attempt times out after 15 s (`fetch` has no separate connect timeout).
  * - HTTP 429 is retried with exponential backoff, at most `maxAttempts` attempts in total.
- *   Other failures are not retried: the next scheduler tick retries them (plan §4.6).
- * - Anything that is not a valid forecast throws, so the caller never overwrites a good cache
- *   with bad data.
+ *   Other failures are not retried: the next scheduler tick retries them.
+ * - Anything that is not 200 with JSON throws, so a caller never overwrites a good cache with
+ *   bad data.
  */
-export async function fetchForecast(
-  opts: FetchForecastOptions,
-): Promise<HourlyRow[]> {
+export async function fetchOpenMeteoJson(
+  url: string,
+  opts: FetchJsonOptions = {},
+): Promise<unknown> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const sleep = opts.sleep ?? defaultSleep;
   const maxAttempts = opts.maxAttempts ?? MAX_ATTEMPTS;
-  const url = buildForecastUrl(opts.latitude, opts.longitude);
 
   for (let attempt = 1; ; attempt++) {
     let res: Response;
@@ -134,9 +143,8 @@ export async function fetchForecast(
       );
     }
 
-    let json: unknown;
     try {
-      json = await res.json();
+      return await res.json();
     } catch {
       throw new OpenMeteoError(
         "invalid",
@@ -144,22 +152,35 @@ export async function fetchForecast(
         res.status,
       );
     }
-    const parsed = forecastResponseSchema.safeParse(json);
-    if (!parsed.success) {
-      throw new OpenMeteoError(
-        "invalid",
-        "Open-Meteo response did not match the expected shape",
-        res.status,
-      );
-    }
-    return mapForecast(parsed.data);
   }
+}
+
+/** Fetches the 3-day hourly forecast for one location. Server-side only (plan §4.5). */
+export async function fetchForecast(
+  opts: FetchForecastOptions,
+): Promise<HourlyRow[]> {
+  const json = await fetchOpenMeteoJson(
+    buildForecastUrl(opts.latitude, opts.longitude),
+    opts,
+  );
+  const parsed = forecastResponseSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new OpenMeteoError(
+      "invalid",
+      "Open-Meteo response did not match the expected shape",
+      200,
+    );
+  }
+  return mapForecast(parsed.data);
 }
 
 const LOCAL_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
 /** "2026-11-11T09:00" at offset +25200 s is 2026-11-11T02:00:00.000Z. Host timezone is not used. */
-function localToInstant(local: string, utcOffsetSeconds: number): string {
+export function localToInstant(
+  local: string,
+  utcOffsetSeconds: number,
+): string {
   const m = LOCAL_TIME.exec(local);
   if (!m) throw new OpenMeteoError("invalid", "Unparseable forecast time");
   const [, y, mo, d, h, mi] = m.map(Number) as [
@@ -180,8 +201,9 @@ function localToInstant(local: string, utcOffsetSeconds: number): string {
 
 const intIn = (min: number, max: number) => (v: number | null | undefined) =>
   v == null || !Number.isFinite(v) || v < min || v > max ? null : Math.round(v);
-const numIn = (min: number, max: number) => (v: number | null | undefined) =>
-  v == null || !Number.isFinite(v) || v < min || v > max ? null : v;
+export const numIn =
+  (min: number, max: number) => (v: number | null | undefined) =>
+    v == null || !Number.isFinite(v) || v < min || v > max ? null : v;
 
 const toProbability = intIn(0, 100);
 const toHumidity = intIn(0, 100);

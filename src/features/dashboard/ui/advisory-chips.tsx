@@ -17,6 +17,7 @@ const ICON: Record<AdvisoryCode, IconName> = {
   wetRoad: "waterDrop",
   rainNearWindow: "rainyLight",
   darkReturn: "bedtime",
+  pm25: "masks",
 };
 
 /**

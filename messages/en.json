@@ -80,7 +80,8 @@
       "windValue": "{speed} km/h",
       "feelsLike": "Feels {value}°",
       "uv": "UV {value}",
-      "gusts": "Gusts {value} km/h"
+      "gusts": "Gusts {value} km/h",
+      "pm25": "PM2.5 {value}"
     },
     "wmo": {
       "clear": "Clear sky",
@@ -149,7 +150,19 @@
       "heavyRain": "Heavy rain {mm} mm/h",
       "wetRoad": "Roads may be wet and slippery",
       "rainNearWindow": "{when, select, before {Rain just before, to {hour}} other {Rain just after, to {hour}}}",
-      "darkReturn": "After dark, {risk}% chance of rain"
+      "darkReturn": "After dark, {risk}% chance of rain",
+      "pm25": "PM2.5 about {value} µg/m³ (estimate) · wear an N95"
+    },
+    "pm": {
+      "value": "PM2.5 {value} µg/m³",
+      "estimate": "Model estimate, may differ from a nearby monitor",
+      "band": {
+        "veryGood": "Very good",
+        "good": "Good",
+        "moderate": "Moderate",
+        "unhealthySensitive": "Starts to affect health",
+        "unhealthy": "Affects health"
+      }
     }
   },
   "placeholder": {
@@ -252,7 +265,8 @@
       "credit": {
         "title": "Weather data",
         "link": "Weather data by Open-Meteo.com",
-        "license": "Open-Meteo data is licensed under"
+        "license": "Open-Meteo data is licensed under",
+        "air": "Air quality: CAMS European air quality forecasts (ENSEMBLE data), Copernicus Atmosphere Monitoring Service, via Open-Meteo.com"
       }
     },
     "notifications": {
@@ -294,6 +308,19 @@
         "notConfigured": "Push is not set up on the server yet.",
         "failed": "Could not send"
       }
+    },
+    "advisories": {
+      "title": "Advisories",
+      "note": "Notes about what to prepare. They never change the car or motorcycle recommendation. Thunderstorms and heavy rain are always shown.",
+      "groups": {
+        "heatCold": "Heat and cold",
+        "sun": "Sun (UV)",
+        "windVisibility": "Wind and visibility",
+        "rainExtras": "Rain extras (wet roads, rain just before or after, rain after dark)",
+        "airQuality": "Air quality (PM2.5)"
+      },
+      "offset": "Temperature sensitivity",
+      "offsetHint": "Shifts the heat and cold limits by this many degrees. Plus: you feel colder than the forecast, so cold warns sooner and heat later. Minus: the other way round."
     }
   },
   "auth": {
@@ -365,7 +392,8 @@
       "latest": "{risk}% (the locked value is kept above)",
       "dataLabel": "Forecast data",
       "complete": "All forecast hours available",
-      "incomplete": "Some forecast hours were missing"
+      "incomplete": "Some forecast hours were missing",
+      "advisories": "Advisories at lock"
     }
   },
   "onboarding": {

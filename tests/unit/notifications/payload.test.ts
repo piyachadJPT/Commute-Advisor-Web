@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildNotification } from "@/features/notifications/domain/payload";
+import type { Advisory } from "@/features/commute/domain/types";
+import {
+  MAX_BODY_LENGTH,
+  buildNotification,
+} from "@/features/notifications/domain/payload";
 import { bkk, compute, DATE } from "../commute/helpers";
 
 const low = { "09:00": 10, "10:00": 10, "19:00": 10 };
@@ -106,5 +110,96 @@ describe("buildNotification (plan §11.8)", () => {
         expect(JSON.stringify(payload)).not.toMatch(/latitude|longitude/i);
       }
     }
+  });
+});
+
+describe("buildNotification: advisories (plan §23.6)", () => {
+  const adv = (
+    code: Advisory["code"],
+    level: Advisory["level"],
+    params: Advisory["params"] = {},
+    trip: Advisory["trip"] = "departure",
+  ): Advisory => ({ code, level, trip, source: "home", params });
+  const withAdvisories = (list: Advisory[]) => ({
+    ...compute({ home: low, work: low }),
+    advisories: list,
+  });
+  const mainTh = "แนะนำมอเตอร์ไซค์ · โอกาสฝนต่ำทั้งสองขา · สูงสุด 10%";
+  const mainEn =
+    "Ride the motorcycle · Low chance of rain both ways · highest 10%";
+
+  it("adds nothing when there are no advisories, so the body is exactly the old one", () => {
+    expect(build(withAdvisories([])).payload.body).toBe(mainTh);
+  });
+
+  it("adds the two most important advisories after the main line, in both languages", () => {
+    const list = [
+      adv("heat", "warning", { value: 39 }),
+      adv("uv", "caution", { value: 9 }),
+      adv("wetRoad", "caution", { mm: 1 }), // a third one is not added
+    ];
+    expect(build(withAdvisories(list)).payload.body).toBe(
+      `${mainTh} · ร้อน รู้สึก 39° · UV 9`,
+    );
+    expect(build(withAdvisories(list), "en").payload.body).toBe(
+      `${mainEn} · hot, feels like 39° · UV 9`,
+    );
+  });
+
+  it("names a code once even when both trips have it", () => {
+    const list = [
+      adv("heat", "warning", { value: 44 }),
+      adv("heat", "warning", { value: 43 }, "return"),
+      adv("uv", "caution", { value: 9 }),
+    ];
+    expect(build(withAdvisories(list), "en").payload.body).toBe(
+      `${mainEn} · hot, feels like 44° · UV 9`,
+    );
+  });
+
+  it("drops advisories, never the recommendation, when the body would be too long", () => {
+    const list = [
+      adv("thunderstorm", "warning"),
+      adv("pm25", "warning", { value: 90 }),
+    ];
+    const c = {
+      ...compute(
+        { home: { ...low, "19:00": 45 }, work: low },
+        { threshold: 40 },
+      ),
+      advisories: list,
+    };
+    const body = build(c, "en").payload.body;
+    const main = "Take the car · Return 45% chance of rain (threshold 40%)";
+    expect(body.startsWith(main)).toBe(true);
+    expect(body.length).toBeLessThanOrEqual(MAX_BODY_LENGTH);
+    expect(body).toBe(`${main} · thunderstorm risk`); // one advisory fits, two do not
+  });
+
+  it("never exceeds the limit unless it is just the main line", () => {
+    for (const locale of ["th", "en"] as const) {
+      const body = build(
+        withAdvisories([
+          adv("thunderstorm", "warning"),
+          adv("pm25", "warning", { value: 120 }),
+          adv("gust", "caution", { value: 65 }),
+        ]),
+        locale,
+      ).payload.body;
+      expect(body.length).toBeLessThanOrEqual(MAX_BODY_LENGTH);
+    }
+  });
+
+  it("stale and generic notifications carry no advisories", () => {
+    const fetched = { home: bkk(DATE, "00:10"), work: bkk(DATE, "00:10") };
+    const stale = {
+      ...compute({ home: low, work: low }, {}, bkk(DATE, "08:00"), fetched),
+      advisories: [adv("heat", "warning", { value: 44 })],
+    };
+    const s = build(stale, "en", bkk(DATE, "08:00"));
+    expect(s.kind).toBe("stale");
+    expect(s.payload.body).not.toContain("hot");
+    const g = build(null, "en");
+    expect(g.kind).toBe("generic");
   });
 });

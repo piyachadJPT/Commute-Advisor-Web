@@ -39,6 +39,8 @@ export type NowView = {
   /** "Feels like", °C, rounded. */
   apparentTemperature: number | null;
   uvIndex: number | null;
+  /** PM2.5 in µg/m³, rounded; a model estimate (plan §23.5). */
+  pm25: number | null;
 };
 
 export type NextDayView = {
