@@ -1172,6 +1172,7 @@ database tests run by hand before a deploy (`npm run test:tz`, `npm run test:db`
 | 36 | Offline | Service worker app shell + IndexedDB snapshot | **New** |
 | 37 | Usage scope | Single owner, personal non-commercial; schema is per-user | **New** |
 | 38 | Phase 7 scope | Cut to README, attribution check and one manual Lighthouse run. No CI, Dependabot, backup Action, CSP or Playwright suites: one owner and one developer, Vercel deploys on push regardless of CI, and the only unrecoverable data (locked history) is covered by a manual `supabase db dump` | **New** 2026-11-12 |
+| 39 | Design review gate (§12.5) | Dropped 2026-11-12. The owner approved the Sky ambient direction from a preview and uses the app on a phone; any visual bug is fixed as it is found | **New** |
 
 ## 22. Definition of Done
 

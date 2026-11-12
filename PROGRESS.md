@@ -1,6 +1,6 @@
 # Commute Advisor — Progress & Handoff
 
-อัปเดตล่าสุด: 2026-11-11 · แผนหลัก: [commute_advisor_plan.md](commute_advisor_plan.md) (v2.0)
+อัปเดตล่าสุด: 2026-11-12 · แผนหลัก: [commute_advisor_plan.md](commute_advisor_plan.md) (v2.0)
 
 ไฟล์นี้บันทึกว่าทำอะไรไปแล้ว ตัดสินใจอะไรไว้ และต้องทำอะไรต่อ ใช้เริ่มงานต่อโดยไม่ต้องย้อนอ่านแชต
 
@@ -12,9 +12,9 @@
 | 2 Supabase & Auth | เสร็จ, commit แล้ว, migration อยู่บนโปรเจกต์จริงแล้ว | เหลือตั้งค่า Auth ใน Dashboard (ดู "ค้างอยู่") |
 | 3 Weather Integration | เสร็จ, commit แล้ว | ยืนยันกับ Supabase จริงแล้ว (ผู้ใช้ตรวจตาราง 2026-11-11) |
 | 4 Commute Engine | เสร็จ (เฉพาะโมดูลบริสุทธิ์), commit แล้ว | ยังไม่ต่อกับ DB/UI (Phase 5–6) |
-| 5 User Interface | **กำลังทำ** (Settings, Dashboard, Weather, History และ Onboarding ต่อข้อมูลจริงแล้ว ยังไม่ได้ลองในเบราว์เซอร์) | ยังไม่ทำ hero/icon/manifest/snapshot/design review |
+| 5 User Interface | เสร็จตามขอบเขตที่ลดแล้ว (ทุกหน้าต่อข้อมูลจริง, hero SVG/CSS, icon, manifest) | **ตัด design review gate และ Playwright snapshot ออก (2026-11-12)** ผมยังไม่เคยเปิดหน้าที่ต่อข้อมูลจริงดูในเบราว์เซอร์ (ติดที่ Docker ปิดและ `.env` เสีย) มีแต่ผู้ใช้ที่ใช้งานบนมือถือ ยังไม่ทำ: day detail แบบ sheet, pull-to-refresh, แบนเนอร์ sync ล้มเหลว, ปุ่มลบข้อมูลทั้งหมด |
 | 6 Scheduler, Push & PWA | เสร็จ (ชิ้น A, B, C) deploy บน Vercel (สิงคโปร์) แล้ว | **ผู้ใช้ทดสอบบนอุปกรณ์จริงแล้ว ผ่านทั้งหมด (แจ้งเมื่อ 2026-11-12)** ดูรายละเอียดใต้หัวข้อ "ผลทดสอบบนอุปกรณ์จริง"; ผมตรวจเองได้แค่ `curl` ไปที่ tick (ตอบ 200) และพบ region `sin1` |
-| 7 Final Testing & Release | ยังไม่เริ่ม | |
+| 7 Final Testing & Release | เสร็จตามขอบเขตที่ลดแล้ว (README, `.env.example`, ตรวจ attribution) | ตัด CI, Dependabot, backup Action, CSP และชุด Playwright ออก (แผน Decision Log #38) เหลือรัน Lighthouse บน production ด้วยมือหนึ่งรอบ |
 
 ## วิธีรันบนเครื่อง
 
