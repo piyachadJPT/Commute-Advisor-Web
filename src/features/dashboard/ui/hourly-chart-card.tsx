@@ -94,7 +94,7 @@ export function HourlyChartCard({
               type="button"
               aria-pressed={series === s}
               onClick={() => setSeries(s)}
-              className="min-h-9 rounded-[9px] px-3 text-caption font-semibold whitespace-nowrap text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-pressed:bg-glass-strong aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
+              className="min-h-9 rounded-[9px] px-3 text-caption font-semibold whitespace-nowrap text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-pressed:text-ink aria-pressed:glass-rim aria-pressed:glass-control"
             >
               {labels.series[s]}
             </button>

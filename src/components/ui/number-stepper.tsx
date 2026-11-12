@@ -21,7 +21,7 @@ const clamp = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, n));
 
 const stepper =
-  "grid size-12 shrink-0 place-items-center rounded-control border border-divider bg-glass-strong text-ink transition-colors duration-(--duration-fast) hover:bg-fill-soft disabled:cursor-not-allowed disabled:text-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2";
+  "grid size-12 shrink-0 place-items-center rounded-control border border-divider glass-control glass-rim text-ink transition-colors duration-(--duration-fast) hover:bg-fill-soft disabled:cursor-not-allowed disabled:text-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2";
 
 /**
  * A number field with our own minus and plus buttons. You can type a value too: it applies as

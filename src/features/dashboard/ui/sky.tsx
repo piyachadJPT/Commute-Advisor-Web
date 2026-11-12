@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { backdropOf, isBright, isWet, unit, type Scene } from "./scene";
+import { backdropOf, isBright, isHazy, isWet, unit, type Scene } from "./scene";
 
 const BACKDROP_BG = {
   "day-clear": "bg-(image:--sky-day-clear)",
@@ -13,6 +13,11 @@ const BACKDROP_BG = {
   "night-grey": "bg-(image:--sky-night-grey)",
   "night-rain": "bg-(image:--sky-night-rain)",
   "night-storm": "bg-(image:--sky-night-storm)",
+  "day-haze": "bg-(image:--sky-day-haze)",
+  "day-smog": "bg-(image:--sky-day-smog)",
+  "dawn-haze": "bg-(image:--sky-dawn-haze)",
+  "dusk-haze": "bg-(image:--sky-dusk-haze)",
+  "night-haze": "bg-(image:--sky-night-haze)",
 } as const;
 
 const DROPS = {
@@ -84,6 +89,13 @@ const MIST: Vars[] = [
   { "--y": "70%", "--t": "34s", "--d": "-20s" },
 ];
 
+/** Smog is the haze with two more drifting bands. */
+const SMOG_MIST: Vars[] = [
+  ...MIST,
+  { "--y": "32%", "--t": "42s", "--d": "-8s" },
+  { "--y": "58%", "--t": "36s", "--d": "-26s" },
+];
+
 /**
  * Full-screen sky that follows the real weather and the time of day (plan §12.1): a gradient
  * per scene, then slow drifting cloud, stars at night, a glow where the sun or moon sits, and
@@ -93,9 +105,14 @@ export function Sky({ scene }: { scene: Scene }) {
   const { daypart, sky } = scene;
   const wet = isWet(sky);
   const bright = isBright(sky);
+  const hazy = isHazy(sky);
   const twilight = daypart === "dawn" || daypart === "dusk";
-  const palette =
-    daypart === "night"
+  const palette = hazy
+    ? // Haze keeps a dull glow (red low in the sky, orange city light at night), no stars.
+      `fx-haze${sky === "smog" ? " fx-smog" : ""}${twilight ? " fx-low" : ""}${
+        daypart === "night" ? " fx-haze-night" : ""
+      }`
+    : daypart === "night"
       ? `fx-night${wet ? "-wet" : ""}`
       : twilight && bright
         ? "fx-dusk fx-low"
@@ -107,13 +124,13 @@ export function Sky({ scene }: { scene: Scene }) {
       aria-hidden="true"
       className={`fixed inset-0 -z-10 overflow-hidden ${palette} ${BACKDROP_BG[backdropOf(scene)]}`}
     >
-      {bright ? <div className="fx-bg-glow" /> : null}
+      {bright || hazy ? <div className="fx-bg-glow" /> : null}
       {starry ? <Stars count={sky === "clear" ? STAR_COUNT : 18} /> : null}
       {sky === "clear" || sky === "hot" ? null : (
         <Puffs count={wet || sky === "overcast" ? PUFF_COUNT : 2} />
       )}
-      {sky === "fog"
-        ? MIST.map((style, i) => (
+      {sky === "fog" || hazy
+        ? (sky === "smog" ? SMOG_MIST : MIST).map((style, i) => (
             <span key={i} className="fx-bg-mist" style={style} />
           ))
         : null}

@@ -1,3 +1,4 @@
+import { ADVISORY_THRESHOLDS } from "@/features/commute/domain/advisoryThresholds";
 import type { Vehicle } from "@/features/commute/domain/types";
 
 /** What the sky is doing, grouped from WMO `weather_code` (Open-Meteo) and the temperature. */
@@ -11,7 +12,9 @@ export type SkyState =
   | "downpour"
   | "storm"
   | "sunshower" // rain while the sun is out: shows a rainbow
-  | "hot"; // clear and hot
+  | "hot" // clear and hot
+  | "haze" // PM2.5 above 37.5 µg/m³: a dull, yellowish sky
+  | "smog"; // PM2.5 above 75 µg/m³: heavy, brown
 export type Daypart = "dawn" | "day" | "dusk" | "night";
 
 export type Scene = { daypart: Daypart; sky: SkyState };
@@ -23,7 +26,18 @@ export type Scene = { daypart: Daypart; sky: SkyState };
 export type InkTone = "moto" | "car" | "mist";
 
 const TIME_ZONE = "Asia/Bangkok"; // fixed in v2.0 (plan §2)
-const HOT_FROM = 35; // °C
+const HOT_FROM = 35; // °C, compared with whatever temperature the caller passes (feels-like)
+/** PM2.5 µg/m³, above (not at): the same edges as the pm25 advisory. */
+const HAZE_FROM = ADVISORY_THRESHOLDS.pm25.caution;
+const SMOG_FROM = ADVISORY_THRESHOLDS.pm25.warning;
+/** Skies the haze takes over. Rain and storms stay as they are: they are what matters most. */
+const HAZED_SKIES: ReadonlySet<SkyState> = new Set([
+  "clear",
+  "partly",
+  "overcast",
+  "fog",
+  "hot",
+]);
 
 /** Local hour (0–23) in Bangkok. */
 export function bangkokHour(now: Date): number {
@@ -71,21 +85,32 @@ const SKY_FOR_VEHICLE: Record<Vehicle, SkyState> = {
   unknown: "fog",
 };
 
+/** Haze or smog in place of a sky it may replace, from PM2.5 (a model estimate). */
+function withHaze(sky: SkyState, pm25: number | null): SkyState {
+  if (pm25 === null || !HAZED_SKIES.has(sky)) return sky;
+  return pm25 > SMOG_FROM ? "smog" : pm25 > HAZE_FROM ? "haze" : sky;
+}
+
+/**
+ * @param temperature used for "hot"; pass the feels-like temperature when there is one
+ * @param pm25 µg/m³, or null when there is no fresh air-quality value (then nothing changes)
+ */
 export function sceneFor(
   weatherCode: number | null,
   vehicle: Vehicle,
   now: Date,
   temperature: number | null = null,
+  pm25: number | null = null,
 ): Scene {
   const daypart = daypartAt(now);
-  return {
-    daypart,
-    sky:
-      weatherCode === null
-        ? SKY_FOR_VEHICLE[vehicle]
-        : skyFromCode(weatherCode, daypart, temperature),
-  };
+  const sky =
+    weatherCode === null
+      ? SKY_FOR_VEHICLE[vehicle]
+      : skyFromCode(weatherCode, daypart, temperature);
+  return { daypart, sky: withHaze(sky, pm25) };
 }
+
+export const isHazy = (sky: SkyState) => sky === "haze" || sky === "smog";
 
 export const isWet = (sky: SkyState) =>
   sky === "drizzle" ||
@@ -109,10 +134,19 @@ export type SkyBackdrop =
   | "night-clear"
   | "night-grey"
   | "night-rain"
-  | "night-storm";
+  | "night-storm"
+  | "day-haze"
+  | "day-smog"
+  | "dawn-haze"
+  | "dusk-haze"
+  | "night-haze";
 
 /** Key of the `--sky-*` gradient token. Dawn and dusk colour only a bright sky. */
 export function backdropOf({ daypart, sky }: Scene): SkyBackdrop {
+  if (isHazy(sky)) {
+    if (daypart !== "day") return `${daypart}-haze`;
+    return sky === "smog" ? "day-smog" : "day-haze";
+  }
   const group = isBright(sky)
     ? sky === "hot"
       ? "hot"
@@ -131,6 +165,8 @@ export function backdropOf({ daypart, sky }: Scene): SkyBackdrop {
 
 export function inkTone({ daypart, sky }: Scene): InkTone {
   if (daypart === "night") return "car";
+  // Light ink on smog and on the deep skies of dawn and dusk; dark ink only on pale day haze.
+  if (isHazy(sky)) return daypart === "day" && sky === "haze" ? "mist" : "car";
   if (daypart !== "day" && isBright(sky)) return "car"; // dawn and dusk skies are deep
   if (isBright(sky)) return "moto";
   if (sky === "overcast" || sky === "fog") return "mist";
@@ -171,6 +207,9 @@ export const ALL_SCENES: Scene[] = [
       "storm",
     ] as const
   ).map((sky): Scene => ({ daypart: "night", sky })),
+  ...(["dawn", "day", "dusk", "night"] as const).flatMap((daypart) =>
+    (["haze", "smog"] as const).map((sky): Scene => ({ daypart, sky })),
+  ),
 ];
 
 /** Deterministic 0–1 values (integer hash), so server and client render identical markup. */

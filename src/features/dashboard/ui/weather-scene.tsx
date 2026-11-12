@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { isWet, unit, type Scene } from "./scene";
+import { isHazy, isWet, unit, type Scene } from "./scene";
 
 // Rainbow bands, outermost first (colours of a rainbow, not theme colours).
 const RAINBOW = [
@@ -253,6 +253,36 @@ function Fog({ night }: { night: boolean }) {
   );
 }
 
+const HAZE_BANDS = [
+  { y: 30, x: 14, w: 172, t: "14s", d: "0s", o: 0.9 },
+  { y: 52, x: 30, w: 150, t: "17s", d: "-6s", o: 0.8 },
+  { y: 74, x: 10, w: 180, t: "15s", d: "-9s", o: 0.9 },
+  { y: 96, x: 36, w: 140, t: "18s", d: "-3s", o: 0.7 },
+  { y: 118, x: 20, w: 164, t: "16s", d: "-12s", o: 0.8 },
+];
+
+/** Slow bands of haze drifting across the sun or moon; smog has all five, haze three. */
+function Haze({ heavy }: { heavy: boolean }) {
+  const bands = heavy ? HAZE_BANDS : HAZE_BANDS.filter((_, i) => i % 2 === 0);
+  return (
+    <>
+      {bands.map((b) => (
+        <rect
+          key={b.y}
+          x={b.x}
+          y={b.y}
+          width={b.w}
+          height="14"
+          rx="7"
+          opacity={b.o}
+          className="fx-band fill-scene-haze"
+          style={{ "--t": b.t, "--d": b.d } as Vars}
+        />
+      ))}
+    </>
+  );
+}
+
 /**
  * Hero weather picture: the sun by day or the moon and stars by night, behind whatever the
  * sky is really doing (cloud, fog, drizzle, rain, thunderstorm). Everything moves slowly
@@ -269,6 +299,7 @@ export function WeatherScene({
   const night = daypart === "night";
   const twilight = daypart === "dawn" || daypart === "dusk";
   const wet = isWet(sky);
+  const hazy = isHazy(sky);
   const dark = (wet && sky !== "sunshower") || night;
   const cloud = dark ? "fill-scene-cloud-dark" : "fill-scene-cloud";
   const cloudBack = dark
@@ -279,7 +310,15 @@ export function WeatherScene({
   const body = (() => {
     if (sky === "storm" || sky === "downpour") return null;
     const peek = sky === "drizzle" || sky === "rain";
-    const faded = sky === "fog" || sky === "overcast" ? 0.6 : 1;
+    // The sun or moon is dull behind haze and faint behind smog.
+    const faded =
+      sky === "smog"
+        ? 0.38
+        : sky === "haze"
+          ? 0.55
+          : sky === "fog" || sky === "overcast"
+            ? 0.6
+            : 1;
     if (sky === "sunshower") {
       return <Sun cx={48} cy={40} r={24} low={twilight} />;
     }
@@ -317,6 +356,7 @@ export function WeatherScene({
       {night && (sky === "clear" || sky === "partly") ? <Stars /> : null}
       {body}
       {sky === "hot" ? <HeatWaves /> : null}
+      {hazy ? <Haze heavy={sky === "smog"} /> : null}
       {sky === "sunshower" ? <Rainbow /> : null}
 
       {sky === "partly" ? (

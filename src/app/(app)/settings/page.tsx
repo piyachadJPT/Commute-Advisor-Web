@@ -150,7 +150,7 @@ async function LanguageSection() {
               name="locale"
               value={locale}
               aria-pressed={current === locale}
-              className="min-h-11 min-w-24 rounded-[9px] px-4 text-label font-semibold text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-pressed:bg-glass-strong aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgb(0_0_0/0.08)]"
+              className="min-h-11 min-w-24 rounded-[9px] px-4 text-label font-semibold text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-pressed:text-ink aria-pressed:glass-rim aria-pressed:glass-control"
             >
               {labels[locale]}
             </button>

@@ -15,7 +15,12 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         className="fixed inset-0 -z-20 bg-(image:--sky-moto)"
       />
       <AppNav />
-      <main className="w-full px-4 pb-[calc(var(--tabbar-space)+env(safe-area-inset-bottom))] sm:px-6 lg:pr-8 lg:pb-10 lg:pl-[calc(var(--rail-width)+3rem)]">
+      {/* The default sky is a bright one, so the cards use the bright-sky glass (tokens.css).
+          The Dashboard sets its own data-sky inside; the nav stays outside and keeps the default. */}
+      <main
+        data-sky="moto"
+        className="w-full px-4 pb-[calc(var(--tabbar-space)+env(safe-area-inset-bottom))] sm:px-6 lg:pr-8 lg:pb-10 lg:pl-[calc(var(--rail-width)+3rem)]"
+      >
         <Suspense fallback={<DashboardSkeleton />}>
           <OnboardingGate>{children}</OnboardingGate>
         </Suspense>

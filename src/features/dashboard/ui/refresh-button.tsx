@@ -12,7 +12,7 @@ export function RefreshButton({ label }: { label: string }) {
       aria-label={label}
       aria-busy={pending}
       disabled={pending}
-      className="grid size-11 shrink-0 place-items-center rounded-tile border border-glass-line bg-(--hero-chip-bg) backdrop-blur-md transition-colors duration-(--duration-fast) hover:bg-glass disabled:cursor-wait"
+      className="grid size-11 shrink-0 place-items-center rounded-tile bg-(--hero-chip-bg) glass-chip transition-colors duration-(--duration-fast) hover:bg-glass disabled:cursor-wait"
     >
       <Icon
         name="refresh"

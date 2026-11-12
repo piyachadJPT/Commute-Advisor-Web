@@ -31,7 +31,7 @@ export function Hero({
       className={`grid grid-cols-[1fr_auto] items-end gap-x-2 text-hero [grid-template-areas:'chip_scene'_'text_text'] lg:pt-4 lg:[grid-template-areas:'chip_scene'_'text_scene'] ${className}`}
     >
       <div className="[grid-area:chip]">
-        <span className="inline-flex items-center gap-1.5 rounded-chip border border-glass-line bg-(--hero-chip-bg) py-1 pr-3 pl-2 text-caption font-semibold backdrop-blur-md">
+        <span className="inline-flex items-center gap-1.5 rounded-chip bg-(--hero-chip-bg) py-1 pr-3 pl-2 text-caption font-semibold glass-chip">
           <Icon
             name={VEHICLE_STYLE[vehicle].icon}
             className="size-[1.125rem]"

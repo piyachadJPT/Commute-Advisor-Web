@@ -79,7 +79,7 @@ export function NowCard({ now }: { now: NowView }) {
           }
         />
       </dl>
-      {now.pm25 === null ? null : (
+      {typeof now.pm25 !== "number" ? null : (
         <div className="mt-2">
           <p
             className={`flex items-center gap-1 text-label font-semibold tabular ${RISK_STYLE[BAND_TONE[pm25BandOf(now.pm25)]].text}`}

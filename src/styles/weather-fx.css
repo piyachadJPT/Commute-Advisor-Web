@@ -357,7 +357,28 @@
   --puff-ink: rgb(255 255 255 / 0.3);
   --glow-ink: rgb(255 200 90 / 0.8);
 }
+/* Haze and smog: a warm wash and a dull glow, red when the sun is low. Later rules win, so
+   smog and the night variant refine the plain haze. */
+.fx-haze {
+  --puff-ink: rgb(225 208 170 / 0.32);
+  --glow-ink: rgb(255 176 96 / 0.4);
+}
+.fx-smog {
+  --puff-ink: rgb(170 140 96 / 0.42);
+  --glow-ink: rgb(255 120 60 / 0.5);
+}
+.fx-haze.fx-low {
+  --glow-ink: rgb(255 110 50 / 0.5);
+}
+.fx-haze-night {
+  --puff-ink: rgb(120 96 64 / 0.28);
+  --glow-ink: rgb(255 170 96 / 0.16);
+}
 @media (prefers-color-scheme: dark) {
+  .fx-haze:not(.fx-low):not(.fx-haze-night) {
+    --puff-ink: rgb(200 180 140 / 0.14);
+    --glow-ink: rgb(255 176 96 / 0.18);
+  }
   .fx-day {
     --puff-ink: rgb(220 232 248 / 0.16);
     --glow-ink: rgb(255 214 130 / 0.18);

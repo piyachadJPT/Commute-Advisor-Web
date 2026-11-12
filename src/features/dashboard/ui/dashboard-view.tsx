@@ -47,11 +47,15 @@ export function DashboardView({
   offline?: boolean;
 }) {
   const t = useTranslations("dashboard");
+  // The sky follows the home forecast. "Hot" goes by how hot it feels, and PM2.5 can turn a
+  // calm sky into haze. A saved offline copy from before PM2.5 has no such field, hence `??`.
+  const hero = view.now[0];
   const scene = sceneFor(
-    view.now[0].weatherCode,
+    hero.weatherCode,
     view.vehicle,
     now,
-    view.now[0].temperature,
+    hero.apparentTemperature ?? hero.temperature,
+    hero.pm25 ?? null,
   );
   const max = view.hourly.home.map((h, i) => {
     const w = view.hourly.work[i] ?? null;
@@ -116,7 +120,7 @@ export function DashboardView({
       {view.skippedToday && !offline ? (
         <form
           action={unskipToday}
-          className="mt-2 flex min-h-11 items-center justify-between gap-3 rounded-tile bg-glass px-4 py-1 text-label shadow-glass"
+          className="mt-2 flex min-h-11 items-center justify-between gap-3 rounded-tile px-4 py-1 text-label glass"
         >
           <p className="font-medium">{t("skippedToday")}</p>
           <button

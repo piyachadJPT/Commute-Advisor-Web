@@ -51,6 +51,7 @@
   --color-scene-cloud-dark: var(--scene-cloud-dark);
   --color-scene-cloud-dark-back: var(--scene-cloud-dark-back);
   --color-scene-bolt: var(--scene-bolt);
+  --color-scene-haze: var(--scene-haze);
 
   --font-*: initial;
   --font-sans:
@@ -147,12 +148,64 @@
 
 /* Frosted glass: translucent surface + blur. Solid where blur is unsupported or
    reduced transparency is requested, so text contrast never depends on the blur. */
-@utility glass {
-  background: var(--glass);
+/* Raised controls: translucent, lighter than the card they sit on. No box-shadow here, so the
+   autofill rule below keeps working on inputs. */
+@utility glass-control {
+  background: linear-gradient(
+    180deg,
+    var(--glass-control-hi),
+    var(--glass-control)
+  );
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--glass-strong);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* The bright rim and a small lift: for buttons and pills, not for inputs. */
+@utility glass-rim {
+  box-shadow:
+    inset 1.5px 1.5px 0 var(--glass-rim),
+    inset -1px -1px 0 var(--glass-rim-soft),
+    0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* Chips and icon buttons on the hero: the fill comes from --hero-chip-bg (it follows the sky
+   ink), this adds the glass edge and blur. */
+@utility glass-chip {
   border: 1px solid var(--glass-line);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: inset 1px 1px 0 var(--glass-rim-soft);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+
+  @media (prefers-reduced-transparency: reduce) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@utility glass {
+  background:
+    linear-gradient(
+      135deg,
+      var(--glass-sheen) 0%,
+      transparent 45%,
+      var(--glass-sheen-soft) 100%
+    ),
+    var(--glass-tint);
+  border: 1px solid var(--glass-line);
+  box-shadow:
+    var(--glass-shadow),
+    inset 1.5px 1.5px 0 var(--glass-rim),
+    inset -1px -1px 0 var(--glass-rim-soft),
+    inset 0 0 28px var(--glass-inner);
+  backdrop-filter: blur(28px) saturate(1.8) brightness(var(--glass-bright));
+  -webkit-backdrop-filter: blur(28px) saturate(1.8)
+    brightness(var(--glass-bright));
 
   @supports not (
     (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))

@@ -31,7 +31,7 @@ export function AppNav() {
                 className={[
                   "flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-tile py-2 text-micro font-medium transition-colors duration-(--duration-fast)",
                   active
-                    ? "bg-glass-strong text-ink"
+                    ? "text-ink glass-rim glass-control"
                     : "text-ink-3 hover:text-ink",
                 ].join(" ")}
               >

@@ -18,10 +18,25 @@
 
   /* Glass */
   --glass: rgb(255 255 255 / 0.8);
+  /* The fill of the `glass` utility only. Elements that use bg-glass directly keep --glass,
+     because they have no backdrop lift and so cannot be more see-through. */
+  --glass-tint: var(--glass);
   --glass-strong: rgb(255 255 255 / 0.92);
   --glass-solid: #f1f5f9;
   --glass-line: rgb(255 255 255 / 0.65);
   --glass-shadow: 0 10px 40px rgb(16 38 64 / 0.14);
+  /* Liquid-glass finish: a bright rim top-left, a sheen that fades by the middle (where the
+     text sits), a soft inner glow, and a lift of the sky behind (backdrop brightness). */
+  --glass-rim: rgb(255 255 255 / 0.9);
+  --glass-rim-soft: rgb(255 255 255 / 0.35);
+  --glass-sheen: rgb(255 255 255 / 0.35);
+  --glass-sheen-soft: rgb(255 255 255 / 0.12);
+  --glass-inner: rgb(255 255 255 / 0.25);
+  --glass-bright: 1.1;
+  /* Raised controls on a card (inputs, steppers, the selected tab, the current nav item):
+     lighter than the card, so text on them is never harder to read than on the card. */
+  --glass-control-hi: rgb(255 255 255 / 0.86);
+  --glass-control: rgb(255 255 255 / 0.7);
   --divider: rgb(13 34 54 / 0.12);
   --fill-soft: rgb(13 34 54 / 0.06);
 
@@ -101,6 +116,38 @@
     #0e1622 55%,
     #1a2736 100%
   );
+  /* Haze (PM2.5 above 37.5) and smog (above 75): dull and yellow-brown. Day haze is pale and
+     takes dark ink; smog and every dawn, dusk and night variant are deep and take light ink. */
+  --sky-day-haze: linear-gradient(
+    175deg,
+    #9b9078 0%,
+    #bcb298 50%,
+    #dcd0b6 100%
+  );
+  --sky-day-smog: linear-gradient(
+    175deg,
+    #3d372f 0%,
+    #5b5042 50%,
+    #8a7656 100%
+  );
+  --sky-dawn-haze: linear-gradient(
+    175deg,
+    #4a4458 0%,
+    #8f7378 50%,
+    #d9a283 100%
+  );
+  --sky-dusk-haze: linear-gradient(
+    175deg,
+    #3a3048 0%,
+    #7d5058 50%,
+    #d8794f 100%
+  );
+  --sky-night-haze: linear-gradient(
+    175deg,
+    #14110e 0%,
+    #2a2118 55%,
+    #4a3a26 100%
+  );
 
   --hero-car: #ffffff;
   --hero-car-2: #ffffff;
@@ -124,6 +171,7 @@
   --scene-cloud-dark: rgb(96 112 132 / 0.96);
   --scene-cloud-dark-back: rgb(78 92 112 / 0.7);
   --scene-bolt: #ffe27a;
+  --scene-haze: rgb(214 196 160 / 0.55);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,11 +180,19 @@
     --ink-2: #c3d1de;
     --ink-3: #a3b4c4;
 
-    --glass: rgb(16 28 44 / 0.6);
+    --glass: rgb(16 28 44 / 0.5);
     --glass-strong: rgb(36 54 76 / 0.9);
     --glass-solid: #142132;
-    --glass-line: rgb(255 255 255 / 0.09);
+    --glass-line: rgb(255 255 255 / 0.16);
     --glass-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+    --glass-rim: rgb(255 255 255 / 0.3);
+    --glass-rim-soft: rgb(255 255 255 / 0.08);
+    --glass-sheen: rgb(255 255 255 / 0.1);
+    --glass-sheen-soft: rgb(255 255 255 / 0.04);
+    --glass-inner: rgb(255 255 255 / 0.06);
+    --glass-bright: 1.08;
+    --glass-control-hi: rgb(48 70 98 / 0.72);
+    --glass-control: rgb(36 54 76 / 0.62);
     --divider: rgb(255 255 255 / 0.11);
     --fill-soft: rgb(255 255 255 / 0.07);
 
@@ -177,6 +233,18 @@
       #1a2532 50%,
       #2f4052 100%
     );
+    --sky-day-haze: linear-gradient(
+      175deg,
+      #2e2b25 0%,
+      #4a4336 50%,
+      #6b5f4a 100%
+    );
+    --sky-day-smog: linear-gradient(
+      175deg,
+      #1f1c17 0%,
+      #342d23 50%,
+      #4f432f 100%
+    );
 
     --hero-car: #eef4fa;
     --hero-car-2: #b8c7d6;
@@ -197,6 +265,7 @@
     --scene-moon-glow: rgb(233 230 214 / 0.16);
     --scene-cloud-dark: rgb(62 76 94 / 0.96);
     --scene-cloud-dark-back: rgb(48 60 76 / 0.7);
+    --scene-haze: rgb(150 130 100 / 0.4);
   }
 }
 
@@ -236,4 +305,36 @@
   /* Layout */
   --rail-width: 5.25rem;
   --tabbar-space: 6.5rem;
+}
+
+/*
+ * On a bright sky (the "moto" and "mist" inks, light theme) the glass can be more see-through:
+ * lifting the sky behind it keeps every text token at 4.5:1 or better over the darkest stop
+ * of those skies. Dark skies (rain, storm, night, dawn, dusk, smog) keep the default.
+ */
+@media (prefers-color-scheme: light) {
+  [data-sky="moto"] {
+    --glass-tint: rgb(255 255 255 / 0.62);
+    --glass-bright: 1.35;
+  }
+  [data-sky="mist"] {
+    --glass-tint: rgb(255 255 255 / 0.55);
+    --glass-bright: 1.3;
+  }
+}
+
+/*
+ * Reading pages (Settings, About, the location pages): a lot of small text, so the glass is
+ * denser than on the Dashboard. Set with data-glass="reading" on the page's layout.
+ * Contrast over the bright sky: 5.5:1 at worst, 6.6:1 for the small captions (light theme).
+ */
+[data-glass="reading"] {
+  --glass-tint: rgb(255 255 255 / 0.86);
+  --glass-bright: 1.15;
+}
+@media (prefers-color-scheme: dark) {
+  [data-glass="reading"] {
+    --glass-tint: rgb(16 28 44 / 0.78);
+    --glass-bright: 1.08;
+  }
 }

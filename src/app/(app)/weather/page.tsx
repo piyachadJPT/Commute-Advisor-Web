@@ -55,7 +55,7 @@ export default function WeatherPage({ searchParams }: PageProps<"/weather">) {
 }
 
 const segment =
-  "inline-flex min-h-11 items-center justify-center rounded-[9px] px-4 text-label font-semibold whitespace-nowrap text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-[current=true]:bg-glass-strong aria-[current=true]:text-ink aria-[current=true]:shadow-[0_1px_3px_rgb(0_0_0/0.08)]";
+  "inline-flex min-h-11 items-center justify-center rounded-[9px] px-4 text-label font-semibold whitespace-nowrap text-ink-3 transition-colors duration-(--duration-fast) hover:text-ink aria-[current=true]:glass-control aria-[current=true]:glass-rim aria-[current=true]:text-ink";
 
 async function WeatherContent({
   searchParams,

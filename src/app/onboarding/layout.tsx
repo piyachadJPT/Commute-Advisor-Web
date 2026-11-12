@@ -7,7 +7,7 @@ export default function OnboardingLayout({
         aria-hidden="true"
         className="fixed inset-0 -z-20 bg-(image:--sky-moto)"
       />
-      <main>{children}</main>
+      <main data-sky="moto">{children}</main>
     </div>
   );
 }
