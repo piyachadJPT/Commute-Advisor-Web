@@ -156,8 +156,8 @@
     var(--glass-control-hi),
     var(--glass-control)
   );
-  backdrop-filter: blur(14px) saturate(1.6);
-  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
 
   @media (prefers-reduced-transparency: reduce) {
     background: var(--glass-strong);
@@ -179,8 +179,8 @@
 @utility glass-chip {
   border: 1px solid var(--glass-line);
   box-shadow: inset 1px 1px 0 var(--glass-rim-soft);
-  backdrop-filter: blur(20px) saturate(1.8);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
 
   @media (prefers-reduced-transparency: reduce) {
     backdrop-filter: none;
@@ -202,9 +202,9 @@
     var(--glass-shadow),
     inset 1.5px 1.5px 0 var(--glass-rim),
     inset -1px -1px 0 var(--glass-rim-soft),
-    inset 0 0 28px var(--glass-inner);
-  backdrop-filter: blur(28px) saturate(1.8) brightness(var(--glass-bright));
-  -webkit-backdrop-filter: blur(28px) saturate(1.8)
+    inset 0 0 20px var(--glass-inner);
+  backdrop-filter: blur(12px) saturate(1.15) brightness(var(--glass-bright));
+  -webkit-backdrop-filter: blur(12px) saturate(1.15)
     brightness(var(--glass-bright));
 
   @supports not (
