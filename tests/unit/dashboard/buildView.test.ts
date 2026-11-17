@@ -258,7 +258,7 @@ describe("buildDashboardView", () => {
         settings,
         home: flat("home", "2026-11-09", {
           "09:00": 60,
-          "10:00": 10,
+          "10:00": 60,
           "19:00": 10,
         }),
         work: flat("work", "2026-11-09", {

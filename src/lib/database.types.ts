@@ -260,6 +260,7 @@ export type Database = {
           kind: string;
           recommendation_id: number | null;
           sent_at: string | null;
+          slot: string;
           status: string;
           target_date: string;
           user_id: string;
@@ -273,6 +274,7 @@ export type Database = {
           kind: string;
           recommendation_id?: number | null;
           sent_at?: string | null;
+          slot?: string;
           status: string;
           target_date: string;
           user_id: string;
@@ -285,6 +287,7 @@ export type Database = {
           kind?: string;
           recommendation_id?: number | null;
           sent_at?: string | null;
+          slot?: string;
           status?: string;
           target_date?: string;
           user_id?: string;

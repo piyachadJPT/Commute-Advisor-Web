@@ -16,7 +16,8 @@ type Hourly = Partial<
 /**
  * Hourly rows for one location on `date`, keyed by bucket label ("09:00"). A key that is
  * absent produces no row at all (forecast does not cover it); `prob: null` produces a row with
- * a null probability.
+ * a null probability. Without `mm` the amount is unknown (null), so the rain rule falls back to
+ * the probability alone (plan §5.3, v2.2); give `mm` to exercise the amount.
  */
 export function series(
   location: LocationKey,
@@ -29,7 +30,7 @@ export function series(
     temperature: 28,
     humidity: 70,
     precipitationProbability: v!.prob,
-    precipitation: v!.mm === undefined ? 0 : v!.mm,
+    precipitation: v!.mm === undefined ? null : v!.mm,
     rain: 0,
     showers: 0,
     weatherCode: 3,

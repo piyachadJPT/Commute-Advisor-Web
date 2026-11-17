@@ -31,7 +31,10 @@ describe("buildNotification (plan §11.8)", () => {
   });
 
   it("fresh motorcycle recommendation", () => {
-    const c = compute({ home: { ...low, "10:00": 35 }, work: low });
+    const c = compute({
+      home: { ...low, "09:00": 35, "10:00": 35 },
+      work: low,
+    });
     expect(build(c).payload.body).toBe(
       "แนะนำมอเตอร์ไซค์ · โอกาสฝนต่ำทั้งสองขา · สูงสุด 35%",
     );

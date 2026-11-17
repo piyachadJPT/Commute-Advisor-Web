@@ -126,7 +126,7 @@ export function buildDashboardView(input: BuildInput): DashboardView {
     locked &&
     returnWarning({
       vehicle,
-      liveReturnRisk: liveReturn,
+      liveReturn: computed.returnTrip,
       threshold: settings.threshold,
     })
       ? liveReturn

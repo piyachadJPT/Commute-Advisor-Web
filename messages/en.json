@@ -30,7 +30,10 @@
       "bothLow": "Both trips below the {threshold}% threshold · highest <b>{max}%</b>",
       "incomplete": "No rain probability yet for the {trip} trip at {source} ({hours})",
       "aboveThreshold": "above your {threshold}% threshold",
-      "otherIncomplete": "{trip} has no data yet"
+      "otherIncomplete": "{trip} has no data yet",
+      "causeStorm": "thunderstorm risk",
+      "causeAmount": "{mm} mm expected",
+      "lightRain": "{trip}: <b>{risk}%</b> chance, but only light rain expected ({mm} mm) · pack rain gear"
     },
     "trips": "Outbound and return",
     "trip": {

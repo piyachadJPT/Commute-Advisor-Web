@@ -36,6 +36,7 @@ import {
   listActiveUserIds,
 } from "@/features/settings/data/settingsRepo";
 import { runTick } from "@/features/jobs/tickService";
+import { toSnapshot } from "@/features/commute/domain/locking";
 
 const supabase = {} as SupabaseClient<Database>;
 const low = { "09:00": 10, "10:00": 10, "19:00": 10 };
@@ -55,6 +56,7 @@ const sub = (
 const settings = (over = {}) => ({
   timeZone: "Asia/Bangkok",
   notificationTime: "06:30",
+  returnTime: "18:00",
   notificationsEnabled: true,
   commuteDays: 31,
   locale: null,
@@ -67,6 +69,9 @@ function arrange(opts: {
   skipped?: string[];
   target?: string;
   lockedNow?: boolean;
+  /** Live forecast; defaults to a 70% return. */
+  forecast?: Parameters<typeof compute>[0];
+  stored?: Map<string, unknown>;
 }) {
   vi.mocked(listActiveUserIds).mockResolvedValue(["u1"]);
   vi.mocked(getUserSettings).mockResolvedValue(
@@ -80,8 +85,10 @@ function arrange(opts: {
     kind: "ready",
     target: opts.target ?? DATE,
     skipped: new Set(opts.skipped ?? []),
+    settings: { threshold: 50 },
+    stored: opts.stored ?? new Map(),
     computed: compute(
-      { home: low, work: { ...low, "19:00": 70 } },
+      opts.forecast ?? { home: low, work: { ...low, "19:00": 70 } },
       {},
       opts.now,
     ),
@@ -232,5 +239,59 @@ describe("runTick", () => {
     const s = await runTick({ supabase, now, send });
     expect(s.errors).toEqual([{ userId: "u1", message: "db down" }]);
     expect(s.notificationsSent).toBe(1); // u2
+  });
+});
+
+describe("runTick: the return update (v2.2)", () => {
+  // The morning snapshot: everything at 10%, a motorcycle day.
+  const dryMorning = () =>
+    new Map([
+      [
+        DATE,
+        {
+          ...toSnapshot(compute({ home: low, work: low })),
+          lockedAt: bkk(DATE, "08:20"),
+          returnRiskLatest: null,
+        },
+      ],
+    ]);
+
+  it("sends in the return slot when rain now threatens a dry morning", async () => {
+    const now = bkk(DATE, "17:05");
+    arrange({ now, stored: dryMorning() }); // live return: 70%
+    const send = vi.fn().mockResolvedValue({});
+    const s = await runTick({ supabase, now, send });
+    expect(claimDay).toHaveBeenCalledWith(supabase, {
+      userId: "u1",
+      targetDate: DATE,
+      kind: "return_update",
+      slot: "return",
+    });
+    expect(JSON.parse(send.mock.calls[0]![1]).body).toBe(
+      "ขากลับ 18:00–19:00 เสี่ยงฝน 70% · เตรียมชุดกันฝนหรือรอฝนหยุด",
+    );
+    expect(finishLog).toHaveBeenCalledWith(
+      supabase,
+      expect.objectContaining({ slot: "return", status: "sent" }),
+    );
+    expect(s.notificationsSent).toBe(1);
+  });
+
+  it("stays quiet when the evening agrees with the morning", async () => {
+    const now = bkk(DATE, "17:05");
+    arrange({ now, stored: dryMorning(), forecast: { home: low, work: low } });
+    const send = vi.fn();
+    await runTick({ supabase, now, send });
+    expect(claimDay).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("forces a refresh on the tick 30 minutes before the update", async () => {
+    arrange({ now: bkk(DATE, "16:30") });
+    await runTick({ supabase, now: bkk(DATE, "16:30"), send: vi.fn() });
+    expect(syncUserForecasts).toHaveBeenLastCalledWith(
+      { supabase },
+      expect.objectContaining({ trigger: "pre_notification" }),
+    );
   });
 });

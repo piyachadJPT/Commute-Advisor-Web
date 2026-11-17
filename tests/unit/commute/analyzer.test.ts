@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { analyzeTrip, decide } from "@/features/commute/domain/analyzer";
+import {
+  analyzeTrip,
+  decide,
+  highCause,
+  isLightRain,
+} from "@/features/commute/domain/analyzer";
 import { riskLevelOf } from "@/features/commute/domain/labels";
+import { deriveReason } from "@/features/commute/domain/reasons";
 import { mapWindow } from "@/features/commute/domain/windowMapper";
 import { asLocalDate, asLocalTime } from "@/features/commute/domain/tz";
 import type { TripAnalysis } from "@/features/commute/domain/types";
@@ -17,7 +23,8 @@ const dep = mapWindow(
 const ret = mapWindow("return", asLocalDate(D), asLocalTime("18:00"), 60, TZ); // 19:00
 
 describe("analyzeTrip (plan §5.2)", () => {
-  it("takes the max over both locations and attributes it", () => {
+  it("averages each location's buckets by overlap, then takes the higher location", () => {
+    // 08:20-09:20 covers 40 min of the 09:00 bucket and 20 min of the 10:00 bucket.
     const home = series("home", D, {
       "09:00": { prob: 10 },
       "10:00": { prob: 20 },
@@ -28,12 +35,28 @@ describe("analyzeTrip (plan §5.2)", () => {
     });
     const t = analyzeTrip(dep, home, work);
     expect(t).toMatchObject({
-      risk: 55,
+      risk: 47, // 55 * 2/3 + 30 * 1/3 = 46.7; home is 13.3
       riskSource: "work",
       isComplete: true,
-      riskLevel: "high",
+      riskLevel: "low",
     });
     expect(t.missingBuckets).toEqual([]);
+  });
+
+  it("a bucket the trip barely touches no longer decides it", () => {
+    // 18:50-19:50: 10 min of the 19:00 bucket, 50 min of the 20:00 bucket.
+    const w = mapWindow("return", asLocalDate(D), asLocalTime("18:50"), 60, TZ);
+    const rows = (loc: "home" | "work") =>
+      series(loc, D, { "19:00": { prob: 92 }, "20:00": { prob: 20 } });
+    expect(analyzeTrip(w, rows("home"), rows("work")).risk).toBe(32); // 92/6 + 20*5/6
+  });
+
+  it("flags a thunderstorm code at either location", () => {
+    const home = series("home", D, { "19:00": { prob: 40 } });
+    const work = series("work", D, { "19:00": { prob: 40 } });
+    work[0]!.weatherCode = 95;
+    expect(analyzeTrip(ret, home, work).storm).toBe(true);
+    expect(analyzeTrip(ret, home, home).storm).toBe(false);
   });
 
   it("attributes a tie to home", () => {
@@ -83,7 +106,7 @@ describe("analyzeTrip (plan §5.2)", () => {
     expect(t.missingBuckets).toHaveLength(4);
   });
 
-  it("rainMm is the larger of the two locations' sums", () => {
+  it("rainMm is the rain expected during the trip at the wetter location", () => {
     const home = series("home", D, {
       "09:00": { prob: 1, mm: 0.5 },
       "10:00": { prob: 1, mm: 1.0 },
@@ -92,7 +115,8 @@ describe("analyzeTrip (plan §5.2)", () => {
       "09:00": { prob: 1, mm: 2.0 },
       "10:00": { prob: 1, mm: 0.1 },
     });
-    expect(analyzeTrip(dep, home, work).rainMm).toBeCloseTo(2.1);
+    // work: 2.0 * 2/3 + 0.1 * 1/3 = 1.37; home: 0.67
+    expect(analyzeTrip(dep, home, work).rainMm).toBe(1.4);
   });
 
   it("rainMm is null when any precipitation value is null", () => {
@@ -143,14 +167,71 @@ describe("riskLevelOf (plan §5.4 fixed bands)", () => {
 const trip = (
   risk: number | null,
   source: "home" | "work" | null = "home",
+  rainMm: number | null = null,
+  storm = false,
 ): TripAnalysis => ({
   window: dep,
   risk,
   riskSource: risk === null ? null : source,
-  rainMm: null,
+  rainMm,
+  storm,
   riskLevel: riskLevelOf(risk),
   isComplete: risk !== null,
   missingBuckets: [],
+});
+
+describe("highCause: the v2.2 rain rule (plan §5.3)", () => {
+  it.each([
+    // risk, mm, storm, expected
+    [92, 0, false, null], // the reported case: high chance, no rain expected
+    [92, 0.4, false, null],
+    [92, 0.5, false, "chance"],
+    [50, 0.5, false, "chance"],
+    [49, 1.9, false, null],
+    [30, 2, false, "amount"],
+    [29, 5, false, null], // a lone model spike
+    [35, 0, true, "storm"],
+    [29, 0, true, null],
+    [70, null, false, "chance"], // amount unknown: probability alone, as before
+    [null, 5, true, null],
+  ] as const)("%s%% / %s mm / storm %s -> %s", (r, mm, storm, expected) => {
+    expect(highCause(trip(r, "home", mm, storm), 50)).toBe(expected);
+  });
+
+  it("light rain is a probability over the threshold that is not rainy", () => {
+    expect(isLightRain(trip(92, "home", 0.1), 50)).toBe(true);
+    expect(isLightRain(trip(92, "home", 1), 50)).toBe(false);
+    expect(isLightRain(trip(40, "home", 0.1), 50)).toBe(false);
+    expect(isLightRain(trip(null), 50)).toBe(false);
+  });
+
+  it("92% with no rain expected on either trip -> motorcycle", () => {
+    expect(decide(trip(92, "home", 0), trip(92, "work", 0.2), 50)).toBe(
+      "motorcycle",
+    );
+  });
+
+  it("explains that case as light rain, naming the trip with the higher chance", () => {
+    const r = { ...trip(92, "work", 0.2), window: ret };
+    expect(deriveReason(trip(60, "home", 0), r, 50, TZ)).toEqual({
+      code: "lightRain",
+      params: {
+        trip: "return",
+        risk: 92,
+        mm: 0.2,
+        window: "18:00–19:00",
+        threshold: 50,
+      },
+    });
+  });
+
+  it("names the amount when heavy rain below the threshold picks the car", () => {
+    const r = { ...trip(40, "work", 3.2), window: ret };
+    expect(deriveReason(trip(10, "home", 0), r, 50, TZ)).toMatchObject({
+      code: "returnHigh",
+      params: { risk: 40, cause: "amount", mm: 3.2 },
+    });
+  });
 });
 
 describe("decide: the v1.1 decision table (plan §16.5)", () => {
@@ -173,7 +254,7 @@ describe("decide: the v1.1 decision table (plan §16.5)", () => {
     });
     const work = series("work", D, {
       "09:00": { prob: 55 },
-      "10:00": { prob: 10 },
+      "10:00": { prob: 55 },
     });
     const homeR = series("home", D, { "19:00": { prob: 10 } });
     const workR = series("work", D, { "19:00": { prob: 10 } });

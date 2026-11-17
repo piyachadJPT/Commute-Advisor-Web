@@ -1,9 +1,11 @@
+import { isHigh } from "./analyzer";
 import type {
   Advisory,
   ComputedRecommendation,
   Instant,
   LocationKey,
   Reason,
+  TripAnalysis,
   Vehicle,
 } from "./types";
 
@@ -87,15 +89,16 @@ export function resolveRecommendation(input: {
   };
 }
 
-/** Warn when a locked motorcycle day's live return risk has reached the threshold (§5.7). */
+/**
+ * Warn when a locked motorcycle day's live return trip now counts as rainy under the same rule
+ * that picks the vehicle (§5.7, v2.2), not on probability alone.
+ */
 export function returnWarning(input: {
   vehicle: Vehicle;
-  liveReturnRisk: number | null;
+  liveReturn: TripAnalysis;
   threshold: number;
 }): boolean {
   return (
-    input.vehicle === "motorcycle" &&
-    input.liveReturnRisk !== null &&
-    input.liveReturnRisk >= input.threshold
+    input.vehicle === "motorcycle" && isHigh(input.liveReturn, input.threshold)
   );
 }

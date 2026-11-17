@@ -1,4 +1,4 @@
-import { isHigh } from "./analyzer";
+import { highCause, isHigh, isLightRain } from "./analyzer";
 import { localTimeOf } from "./tz";
 import type { Reason, TripAnalysis } from "./types";
 
@@ -24,6 +24,7 @@ export function deriveReason(
     const useReturn = retHigh && (!depHigh || ret.risk! > dep.risk!);
     const trip = useReturn ? ret : dep;
     const other = useReturn ? dep : ret;
+    const cause = highCause(trip, threshold);
     return {
       code: useReturn ? "returnHigh" : "departureHigh",
       params: {
@@ -32,6 +33,8 @@ export function deriveReason(
         window: windowLabel(trip),
         threshold,
         ...(other.isComplete ? {} : { otherIncomplete: true as const }),
+        ...(cause === "storm" ? { cause } : {}),
+        ...(cause === "amount" ? { cause, mm: trip.rainMm! } : {}),
       },
     };
   }
@@ -46,6 +49,26 @@ export function deriveReason(
     return {
       code: "incomplete",
       params: { trip: trip.window.type, source, hours, threshold },
+    };
+  }
+
+  // The higher probability among light-rain trips; a tie names departure.
+  const light = [dep, ret]
+    .filter((t) => isLightRain(t, threshold))
+    .reduce<TripAnalysis | null>(
+      (best, t) => (best === null || t.risk! > best.risk! ? t : best),
+      null,
+    );
+  if (light) {
+    return {
+      code: "lightRain",
+      params: {
+        trip: light.window.type,
+        risk: light.risk!,
+        mm: light.rainMm ?? 0,
+        window: windowLabel(light),
+        threshold,
+      },
     };
   }
 

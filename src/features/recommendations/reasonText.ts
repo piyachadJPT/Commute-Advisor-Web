@@ -24,6 +24,10 @@ const text = {
     highCustom: (t: string, risk: number, at: string, w: string, th: number) =>
       `${t} ${risk}% ${at} (${w}) ซึ่งเกินเกณฑ์ที่ตั้งไว้ ${th}%`,
     otherNoData: (t: string) => ` · ยังไม่มีข้อมูล${t}`,
+    storm: " · มีพายุฝนฟ้าคะนอง",
+    amount: (mm: number) => ` · คาดฝน ${mm} มม.`,
+    lightRain: (t: string, risk: number, mm: number) =>
+      `${t}โอกาสฝน ${risk}% แต่คาดว่าฝนเบา (${mm} มม.) · พกชุดกันฝน`,
     bothLow: (th: number, max: number) =>
       `โอกาสฝนทั้งสองขาต่ำกว่าเกณฑ์ ${th}% · สูงสุด ${max}%`,
     incomplete: (t: string, at: string, hours: string) =>
@@ -40,6 +44,10 @@ const text = {
     highCustom: (t: string, risk: number, at: string, w: string, th: number) =>
       `${t}: ${risk}% ${at} (${w}), above your ${th}% threshold`,
     otherNoData: (t: string) => ` · no data for the ${t.toLowerCase()} trip`,
+    storm: " · thunderstorm risk",
+    amount: (mm: number) => ` · ${mm} mm expected`,
+    lightRain: (t: string, risk: number, mm: number) =>
+      `${t}: ${risk}% chance, but only light rain expected (${mm} mm) · pack rain gear`,
     bothLow: (th: number, max: number) =>
       `Both trips below the ${th}% threshold · highest ${max}%`,
     incomplete: (t: string, at: string, hours: string) =>
@@ -55,8 +63,10 @@ export function renderReasonText(reason: Reason, locale: "th" | "en"): string {
       const p = reason.params;
       const trip = reason.code === "departureHigh" ? "departure" : "return";
       const other = trip === "departure" ? "return" : "departure";
+      // A storm or amount trigger can fire below the threshold, so "above your threshold" is
+      // only claimed for the plain probability trigger.
       const base =
-        p.threshold === DEFAULT_THRESHOLD
+        p.cause !== undefined || p.threshold === DEFAULT_THRESHOLD
           ? t.high(t.trip[trip], p.risk, t.at[p.source], p.window)
           : t.highCustom(
               t.trip[trip],
@@ -65,7 +75,19 @@ export function renderReasonText(reason: Reason, locale: "th" | "en"): string {
               p.window,
               p.threshold,
             );
-      return p.otherIncomplete ? base + t.otherNoData(t.trip[other]) : base;
+      const cause =
+        p.cause === "storm"
+          ? t.storm
+          : p.cause === "amount"
+            ? t.amount(p.mm ?? 0)
+            : "";
+      return (
+        base + cause + (p.otherIncomplete ? t.otherNoData(t.trip[other]) : "")
+      );
+    }
+    case "lightRain": {
+      const p = reason.params;
+      return t.lightRain(t.trip[p.trip], p.risk, p.mm);
     }
     case "bothLow":
       return t.bothLow(reason.params.threshold, reason.params.max);

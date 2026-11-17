@@ -198,9 +198,10 @@ For each trip, departure or return:
 
 1. Select the buckets defined in §5.1 for **home** and for **workplace**.
 2. The trip is **complete** only if every selected bucket exists at both locations and has a non-null `precipitation_probability`.
-3. `tripRisk = max(precipitation_probability)` across all selected buckets at both locations.
-4. `tripRainMm = max(homeSum, workSum)`, where each sum is the total `precipitation` of the selected buckets at that location. If any value is null, the sum is null. Null is never treated as 0.
-5. Record which location produced `tripRisk`. The explanation text uses it.
+3. **v2.2:** at each location, the mean `precipitation_probability` of the selected buckets, each weighted by the share of its hour the trip covers. `tripRisk` is the higher of the two locations' means (a tie goes to home). Until v2.1 this was the single highest bucket at either location, which let an hour the trip barely touched decide the day.
+4. `tripRainMm = max(homeSum, workSum)`, where each sum is the `precipitation` of each selected bucket scaled by the share of its hour the trip covers (v2.2: the rain expected during the trip itself, not whole hours). If any value is null, the sum is null. Null is never treated as 0.
+5. `tripStorm`: a thunderstorm weather code (95, 96, 99) in any selected bucket at either location (v2.2).
+6. Record which location produced `tripRisk`. The explanation text uses it.
 
 ### 5.3 Primary rule
 
@@ -217,6 +218,16 @@ export function decide(dep: TripAnalysis, ret: TripAnalysis, threshold: number):
 - If either trip has complete data and is at or above the threshold, recommend **car**, even if the other trip is incomplete. The explanation names the trip that triggered it.
 - If both trips are complete and below the threshold, recommend **motorcycle**.
 - Any other case is **unknown**. Missing data is never converted into a confident motorcycle recommendation.
+
+**v2.2: what "high" means.** Open-Meteo's probability is the chance of more than 0.1 mm in the hour, from ~25 km ensemble cells, so a high percentage often means drizzle somewhere nearby. In the owner's use it gave 92% for an evening with no rain at all. A complete trip is now high when any of these hold (`highCause` in `analyzer.ts`, constants in `RAIN_RULE`):
+
+| Cause | Condition |
+|---|---|
+| `storm` | `tripStorm` and `tripRisk ≥ 30` |
+| `amount` | `tripRainMm ≥ 2` and `tripRisk ≥ 30` |
+| `chance` | `tripRisk ≥ threshold` and `tripRainMm ≥ 0.5` (or `tripRainMm` unknown: the probability alone decides, so missing data never weakens the rule) |
+
+A trip at or above the threshold that is not high is **light rain**: the motorcycle stays and the reason is `lightRain` ("ขากลับโอกาสฝน 92% แต่คาดว่าฝนเบา (0.1 มม.) · พกชุดกันฝน"). A high reason carries `cause: "storm" | "amount"` (with `mm`) when the probability alone did not trigger it. The amounts are starting values: tune them after real use and record each change here.
 
 ### 5.4 Risk labels
 
@@ -256,13 +267,14 @@ The Dashboard and analysis target the **next relevant commute day**:
 - When the departure window starts (e.g. 08:20) on a commute day, that day's recommendation is **locked**: `vehicle`, `departure_risk`, `return_risk` and `reason` are frozen and `locked_at` is set.
 - If no recommendation exists at lock time, the first analysis after that moment creates the record and locks it immediately.
 - The scheduled tick (§13.1) performs the lock. If a tick was missed, any server-side read after the departure start locks the record lazily. Locking is idempotent, and a database trigger enforces that frozen columns cannot change (§6.3).
-- After locking, the return card on the Dashboard keeps updating from fresh forecasts. The live value is stored in `return_risk_latest`. If the locked vehicle is motorcycle and the live return risk reaches the threshold, show a warning: "ขากลับเสี่ยงฝนสูงขึ้นเป็น 70% — เตรียมชุดกันฝน".
+- After locking, the return card on the Dashboard keeps updating from fresh forecasts. The live value is stored in `return_risk_latest`. If the locked vehicle is motorcycle and the live return trip is high by the §5.3 rule (v2.2: the same rule as the verdict, not probability alone), show a warning: "ขากลับเสี่ยงฝนสูงขึ้นเป็น 70% — เตรียมชุดกันฝน".
+- **v2.2 return update (push).** From one hour before `return_time`, for 20 minutes, the tick compares the live return trip with the locked snapshot's return trip, both judged by §5.3. It sends a second push only when they disagree: `rainNow` (dry in the morning, rainy now) or `clearing` (rainy in the morning, not now). An agreeing or incomplete forecast sends nothing. The tick 20–30 minutes before forces a forecast refresh. `notification_logs` has a `slot` (`morning` | `return`) and is unique per user, date and slot.
 - A settings change recomputes only unlocked days.
 - History shows the locked snapshot, plus the latest return risk when it differs.
 
 ### 5.8 Additional risk signals
 
-Precipitation amount, weather code, and wind speed are shown as supporting context only. Do not mix them into the primary rule until explicit thresholds and tests are defined.
+Wind speed is shown as supporting context only. Since v2.2, precipitation amount and thunderstorm codes are part of the primary rule, with the fixed thresholds and tests in §5.3.
 
 v2.1 adds **advisories** (§23): heat, cold, UV, gusts, thunderstorms, heavy rain, wet roads, PM2.5 and similar, evaluated per trip with fixed thresholds and tests. They tell the user what to prepare. They never change the vehicle; §5.3 stays the only rule that chooses it.
 
@@ -1175,9 +1187,11 @@ database tests run by hand before a deploy (`npm run test:tz`, `npm run test:db`
 | 37 | Usage scope | Single owner, personal non-commercial; schema is per-user | **New** |
 | 38 | Phase 7 scope | Cut to README, attribution check and one manual Lighthouse run. No CI, Dependabot, backup Action, CSP or Playwright suites: one owner and one developer, Vercel deploys on push regardless of CI, and the only unrecoverable data (locked history) is covered by a manual `supabase db dump` | **New** 2026-11-12 |
 | 39 | Design review gate (§12.5) | Dropped 2026-11-12. The owner approved the Sky ambient direction from a preview and uses the app on a phone; any visual bug is fixed as it is found | **New** |
-| 40 | Advisories vs. the primary rule (v2.1) | Rain probability alone still chooses the vehicle (§5.3). Temperature, UV, wind, visibility, thunderstorms, rain amount and PM2.5 only produce advisories (§23) | **New** 2026-11-12, planned |
+| 40 | Advisories vs. the primary rule (v2.1) | Rain probability alone still chooses the vehicle (§5.3). Temperature, UV, wind, visibility, thunderstorms, rain amount and PM2.5 only produce advisories (§23) | **New** 2026-11-12, planned. Rain amount and thunderstorms superseded by #43 |
 | 41 | Air-quality source (v2.1) | Open-Meteo Air Quality API (CAMS model), PM2.5 and PM10 in µg/m³ shown against the Thai PCD bands. US AQI is not shown, because its bands differ from the Thai ones. Stored in its own table, because it is a separate source that fails on its own | **New** 2026-11-12, planned |
 | 42 | Advisory overrides (v2.1) | No advisory can change the vehicle in phases A–C. An opt-in override is described in §23.8 but not scheduled | **New** 2026-11-12, planned |
+| 43 | Rain rule (v2.2) | Replaces #40 for rain. The owner got "car, 92% rain" for an evening with no rain. Cause: the probability counts >0.1 mm anywhere in a ~25 km cell, and the trip took the worst of up to 4 hourly values. Now the trip uses an overlap-weighted mean, and a high probability also needs ≥0.5 mm expected on the trip; ≥2 mm or a thunderstorm code (with ≥30%) count on their own (§5.2, §5.3). Heat, UV, wind, visibility and PM2.5 still never change the vehicle | **New** 2026-11-17 |
+| 44 | Return update (v2.2) | A second push one hour before the return, only when the live return forecast disagrees with the locked morning one (§5.7). No separate setting: it follows the notification switch | **New** 2026-11-17 |
 
 ## 22. Definition of Done
 

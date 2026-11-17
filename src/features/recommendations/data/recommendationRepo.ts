@@ -19,6 +19,7 @@ type Row = Database["public"]["Tables"]["daily_recommendations"]["Row"];
 const REASON_CODES = new Set([
   "departureHigh",
   "returnHigh",
+  "lightRain",
   "bothLow",
   "incomplete",
 ]);

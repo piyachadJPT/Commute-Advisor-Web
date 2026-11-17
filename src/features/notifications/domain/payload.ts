@@ -12,7 +12,8 @@ import type {
   Vehicle,
 } from "@/features/commute/domain/types";
 
-export type NotificationKind = "recommendation" | "stale" | "generic";
+export type NotificationKind =
+  "recommendation" | "stale" | "generic" | "return_update";
 export type PushPayload = { title: string; body: string; url: "/" };
 export type Locale = "th" | "en";
 
@@ -99,6 +100,10 @@ const text = {
       threshold === DEFAULT_THRESHOLD
         ? `${trip}เสี่ยงฝน ${risk}%`
         : `${trip}เสี่ยงฝน ${risk}% (เกณฑ์ ${threshold}%)`,
+    storm: " · พายุฝนฟ้าคะนอง",
+    amount: (mm: number) => ` · คาด ${mm} มม.`,
+    lightRain: (trip: string, risk: number, mm: number) =>
+      `${trip}โอกาสฝน ${risk}% แต่ฝนเบา ${mm} มม. · พกชุดกันฝน`,
     bothLow: (max: number) => `โอกาสฝนต่ำทั้งสองขา · สูงสุด ${max}%`,
     incomplete: (trip: string) => `ข้อมูลพยากรณ์${trip}ยังไม่ครบ`,
     stale: (verdict: string, when: string) =>
@@ -121,6 +126,10 @@ const text = {
       threshold === DEFAULT_THRESHOLD
         ? `${trip} ${risk}% chance of rain`
         : `${trip} ${risk}% chance of rain (threshold ${threshold}%)`,
+    storm: " · thunderstorms",
+    amount: (mm: number) => ` · ${mm} mm expected`,
+    lightRain: (trip: string, risk: number, mm: number) =>
+      `${trip} ${risk}% but light rain, ${mm} mm · pack rain gear`,
     bothLow: (max: number) => `Low chance of rain both ways · highest ${max}%`,
     incomplete: (trip: string) => `Forecast for the ${trip} trip is incomplete`,
     stale: (verdict: string, when: string) =>
@@ -130,6 +139,10 @@ const text = {
   },
 };
 
+/** English reads better capitalised at the start of the body. */
+const capitalise = (s: string, locale: Locale) =>
+  locale === "en" ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
 function shortReason(reason: Reason, locale: Locale): string {
   const t = text[locale];
   switch (reason.code) {
@@ -137,15 +150,20 @@ function shortReason(reason: Reason, locale: Locale): string {
     case "returnHigh": {
       const trip =
         t.trip[reason.code === "departureHigh" ? "departure" : "return"];
-      const sentence = t.high(
-        trip,
-        reason.params.risk,
-        reason.params.threshold,
-      );
-      // English reads better capitalised at the start of the body.
-      return locale === "en"
-        ? sentence.charAt(0).toUpperCase() + sentence.slice(1)
-        : sentence;
+      const p = reason.params;
+      // A storm or amount trigger can fire below the threshold: do not cite it then.
+      const sentence =
+        t.high(trip, p.risk, p.cause ? DEFAULT_THRESHOLD : p.threshold) +
+        (p.cause === "storm"
+          ? t.storm
+          : p.cause === "amount"
+            ? t.amount(p.mm ?? 0)
+            : "");
+      return capitalise(sentence, locale);
+    }
+    case "lightRain": {
+      const p = reason.params;
+      return capitalise(t.lightRain(t.trip[p.trip], p.risk, p.mm), locale);
     }
     case "bothLow":
       return t.bothLow(reason.params.max);

@@ -32,7 +32,7 @@ describe("notification claim (§6.6, §13.1)", () => {
             kind: "recommendation",
             status: "sending",
           },
-          { onConflict: "user_id,target_date", ignoreDuplicates: true },
+          { onConflict: "user_id,target_date,slot", ignoreDuplicates: true },
         )
         .select("id");
 
@@ -58,6 +58,26 @@ describe("notification claim (§6.6, §13.1)", () => {
       status: "sent",
     });
     expect(error).toBeNull();
+  });
+
+  it("allows one return update beside the morning message, and only one (v2.2)", async () => {
+    const row = {
+      user_id: user.id,
+      target_date: "2026-11-11",
+      kind: "return_update",
+      slot: "return",
+      status: "sent",
+    };
+    expect(
+      (await admin().from("notification_logs").insert(row)).error,
+    ).toBeNull();
+    expect(
+      (await admin().from("notification_logs").insert(row)).error,
+    ).not.toBeNull();
+    const bad = await admin()
+      .from("notification_logs")
+      .insert({ ...row, target_date: "2026-11-13", slot: "noon" });
+    expect(bad.error).not.toBeNull();
   });
 
   it("rejects invalid kind and status values", async () => {

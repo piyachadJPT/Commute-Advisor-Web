@@ -41,3 +41,39 @@ export function isPreNotificationRefresh(input: Input): boolean {
     zonedToInstant(today, notificationTime, timeZone).getTime() - now.getTime();
   return before > 20 * MIN && before <= 30 * MIN;
 }
+
+/**
+ * The return update (v2.2) is sent this long before the return window, so the user can still
+ * plan around rain: leave earlier or later, or get rain gear out.
+ */
+export const RETURN_UPDATE_LEAD_MS = 60 * MIN;
+
+type ReturnInput = {
+  now: Date;
+  today: LocalDate;
+  returnTime: LocalTime;
+  timeZone: string;
+};
+
+const returnUpdateAt = ({ today, returnTime, timeZone }: ReturnInput) =>
+  zonedToInstant(today, returnTime, timeZone).getTime() - RETURN_UPDATE_LEAD_MS;
+
+/**
+ * True on a commute day that is not skipped, from an hour before `returnTime` for 20 minutes:
+ * the same two-tick window as the morning message. Whether anything is sent depends on the
+ * forecast (`returnUpdate`); the claim in `notification_logs` makes it once-only.
+ */
+export function isReturnUpdateDue(
+  input: ReturnInput & { commuteDays: number; skipped: ReadonlySet<string> },
+): boolean {
+  const { now, today, commuteDays, skipped } = input;
+  if (!isCommuteDay(today, commuteDays) || skipped.has(today)) return false;
+  const since = now.getTime() - returnUpdateAt(input);
+  return since >= 0 && since < NOTIFICATION_WINDOW_MS;
+}
+
+/** The tick 20-30 minutes before the return update, which forces a forecast refresh. */
+export function isPreReturnRefresh(input: ReturnInput): boolean {
+  const before = returnUpdateAt(input) - input.now.getTime();
+  return before > 20 * MIN && before <= 30 * MIN;
+}

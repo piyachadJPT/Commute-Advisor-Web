@@ -269,8 +269,12 @@ function renderReason(reason: ReasonView, t: Translate): ReactNode {
             source: t(`location.${p.source}`),
             window: p.window,
           })}
+          {p.cause === "storm" ? ` · ${t("reason.causeStorm")}` : null}
+          {p.cause === "amount"
+            ? ` · ${t("reason.causeAmount", { mm: p.mm ?? 0 })}`
+            : null}
           {/* A custom threshold can disagree with the fixed label, so state it (plan §5.4). */}
-          {p.threshold !== DEFAULT_THRESHOLD
+          {p.cause === undefined && p.threshold !== DEFAULT_THRESHOLD
             ? ` · ${t("reason.aboveThreshold", { threshold: p.threshold })}`
             : null}
           {p.otherIncomplete
@@ -279,6 +283,13 @@ function renderReason(reason: ReasonView, t: Translate): ReactNode {
         </>
       );
     }
+    case "lightRain":
+      return t.rich("reason.lightRain", {
+        b,
+        trip: t(`trip.${reason.params.trip}`),
+        risk: reason.params.risk,
+        mm: reason.params.mm,
+      });
     case "bothLow":
       return t.rich("reason.bothLow", {
         b,

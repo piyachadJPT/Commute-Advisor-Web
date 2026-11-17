@@ -26,7 +26,10 @@ describe("computeRecommendation: vehicle, reason and metadata", () => {
   });
 
   it("names the departure trip and its window when departure triggers", () => {
-    const r = compute({ home: low, work: { ...low, "10:00": 55 } });
+    const r = compute({
+      home: low,
+      work: { ...low, "09:00": 55, "10:00": 55 },
+    });
     expect(r.reason).toEqual({
       code: "departureHigh",
       params: {
@@ -40,20 +43,23 @@ describe("computeRecommendation: vehicle, reason and metadata", () => {
 
   it("when both trips are high, explains with the higher one (tie: departure)", () => {
     const both = compute({
-      home: { ...low, "09:00": 90, "19:00": 95 },
+      home: { ...low, "09:00": 90, "10:00": 90, "19:00": 95 },
       work: low,
     });
     expect(both.vehicle).toBe("car");
     expect(both.reason.code).toBe("returnHigh");
     const tie = compute({
-      home: { ...low, "09:00": 80, "19:00": 80 },
+      home: { ...low, "09:00": 80, "10:00": 80, "19:00": 80 },
       work: low,
     });
     expect(tie.reason.code).toBe("departureHigh");
   });
 
   it("returns motorcycle with a bothLow reason and the highest value", () => {
-    const r = compute({ home: { ...low, "10:00": 35 }, work: low });
+    const r = compute({
+      home: { ...low, "09:00": 35, "10:00": 35 },
+      work: low,
+    });
     expect(r.vehicle).toBe("motorcycle");
     expect(r.reason).toEqual({
       code: "bothLow",

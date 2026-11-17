@@ -10,6 +10,7 @@ import {
   asLocalDate,
   asLocalTime,
 } from "@/features/commute/domain/tz";
+import type { TripAnalysis } from "@/features/commute/domain/types";
 import { TZ, bkk, compute, DATE } from "./helpers";
 
 const low = { "09:00": 10, "10:00": 10, "19:00": 10 };
@@ -140,20 +141,28 @@ describe("resolveRecommendation (plan §5.7)", () => {
   });
 });
 
-describe("returnWarning (plan §5.7)", () => {
+describe("returnWarning (plan §5.7, v2.2)", () => {
+  const live = (risk: number | null, rainMm: number | null) =>
+    ({
+      risk,
+      rainMm,
+      storm: false,
+      isComplete: risk !== null,
+    }) as TripAnalysis;
   it.each([
-    ["motorcycle", 70, 50, true],
-    ["motorcycle", 50, 50, true],
-    ["motorcycle", 49, 50, false],
-    ["motorcycle", null, 50, false],
-    ["car", 90, 50, false],
-    ["unknown", 90, 50, false],
+    ["motorcycle", 70, 1, 50, true],
+    ["motorcycle", 50, 0.5, 50, true],
+    ["motorcycle", 49, 1, 50, false],
+    ["motorcycle", 92, 0, 50, false], // high chance, no rain expected
+    ["motorcycle", null, 5, 50, false],
+    ["car", 90, 5, 50, false],
+    ["unknown", 90, 5, 50, false],
   ] as const)(
-    "%s, live %s, threshold %s -> %s",
-    (vehicle, live, threshold, expected) => {
-      expect(returnWarning({ vehicle, liveReturnRisk: live, threshold })).toBe(
-        expected,
-      );
+    "%s, live %s%% / %s mm, threshold %s -> %s",
+    (vehicle, risk, mm, threshold, expected) => {
+      expect(
+        returnWarning({ vehicle, liveReturn: live(risk, mm), threshold }),
+      ).toBe(expected);
     },
   );
 });

@@ -5,14 +5,22 @@ import type { NotificationKind } from "../domain/payload";
 
 type Client = SupabaseClient<Database>;
 
+/** Which of the day's messages: the morning recommendation or the return update (v2.2). */
+export type NotificationSlot = "morning" | "return";
+
 /**
- * Claims a day by inserting a `sending` row (plan §6.6, §13.1). The unique (user_id,
- * target_date) constraint means at most one caller gets `true`, however many ticks overlap:
- * `ignoreDuplicates` makes a lost race return no row instead of an error.
+ * Claims a day's slot by inserting a `sending` row (plan §6.6, §13.1). The unique (user_id,
+ * target_date, slot) constraint means at most one caller gets `true`, however many ticks
+ * overlap: `ignoreDuplicates` makes a lost race return no row instead of an error.
  */
 export async function claimDay(
   supabase: Client,
-  input: { userId: string; targetDate: LocalDate; kind: NotificationKind },
+  input: {
+    userId: string;
+    targetDate: LocalDate;
+    kind: NotificationKind;
+    slot?: NotificationSlot;
+  },
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from("notification_logs")
@@ -21,9 +29,10 @@ export async function claimDay(
         user_id: input.userId,
         target_date: input.targetDate,
         kind: input.kind,
+        slot: input.slot ?? "morning",
         status: "sending",
       },
-      { onConflict: "user_id,target_date", ignoreDuplicates: true },
+      { onConflict: "user_id,target_date,slot", ignoreDuplicates: true },
     )
     .select("id");
   if (error)
@@ -37,6 +46,7 @@ export async function finishLog(
   input: {
     userId: string;
     targetDate: LocalDate;
+    slot?: NotificationSlot;
     status: "sent" | "failed";
     devicesSent: number;
     now: Date;
@@ -52,7 +62,8 @@ export async function finishLog(
       error_message: input.error?.slice(0, 500) ?? null,
     })
     .eq("user_id", input.userId)
-    .eq("target_date", input.targetDate);
+    .eq("target_date", input.targetDate)
+    .eq("slot", input.slot ?? "morning");
   if (error)
     throw new Error(`notification_logs update failed: ${error.message}`);
 }

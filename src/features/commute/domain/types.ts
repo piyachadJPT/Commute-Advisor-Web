@@ -67,8 +67,13 @@ export type TripAnalysis = {
   risk: number | null;
   /** Location that produced `risk`. A tie goes to home. Null when `risk` is null. */
   riskSource: LocationKey | null;
-  /** Larger of the two locations' precipitation sums; null if either sum is unknown. */
+  /**
+   * Rain expected during the trip, mm: each bucket scaled by how much of its hour the trip
+   * covers, summed per location, then the larger location. Null if either sum is unknown.
+   */
   rainMm: number | null;
+  /** A thunderstorm weather code in any bucket at either location. */
+  storm: boolean;
   riskLevel: RainRiskLevel;
   isComplete: boolean;
   missingBuckets: MissingBucket[];
@@ -107,6 +112,26 @@ export type Reason =
         threshold: number;
         /** Set only when the other trip has no complete data. */
         otherIncomplete?: true;
+        /**
+         * What made the trip rainy (v2.2). Absent on rows stored before v2.2 and when the
+         * probability reached the threshold ("chance"). `mm` is set with "amount".
+         */
+        cause?: "amount" | "storm";
+        mm?: number;
+      };
+    }
+  /**
+   * v2.2: a trip's probability reached the threshold but too little rain is expected to count,
+   * so the motorcycle stays. The trip with the higher probability is named.
+   */
+  | {
+      code: "lightRain";
+      params: {
+        trip: CommuteType;
+        risk: number;
+        mm: number;
+        window: string;
+        threshold: number;
       };
     }
   | { code: "bothLow"; params: { threshold: number; max: number } }

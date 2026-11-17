@@ -16,6 +16,7 @@
 | 6 Scheduler, Push & PWA | เสร็จ (ชิ้น A, B, C) deploy บน Vercel (สิงคโปร์) แล้ว | **ผู้ใช้ทดสอบบนอุปกรณ์จริงแล้ว ผ่านทั้งหมด (แจ้งเมื่อ 2026-11-12)** ดูรายละเอียดใต้หัวข้อ "ผลทดสอบบนอุปกรณ์จริง"; ผมตรวจเองได้แค่ `curl` ไปที่ tick (ตอบ 200) และพบ region `sin1` |
 | 7 Final Testing & Release | เสร็จตามขอบเขตที่ลดแล้ว (README, `.env.example`, ตรวจ attribution) | ตัด CI, Dependabot, backup Action, CSP และชุด Playwright ออก (แผน Decision Log #38) เหลือรัน Lighthouse บน production ด้วยมือหนึ่งรอบ |
 | v2.1 A: Weather advisories | เสร็จ push ขึ้น main และ migration ขึ้นฐานจริงแล้ว | ดู "v2.1 ขั้น A" ท้ายไฟล์: เทสต์ unit ผ่าน, **ยังไม่เห็นชิปบนจอ และยังไม่ได้รันเทสต์ DB** ขั้น B และ C ยังไม่เริ่ม |
+| v2.2 กฎฝนใหม่ + แจ้งเตือนก่อนกลับ (2026-11-17) | โค้ดเสร็จ ยังไม่ commit **migration `20261117120000_return_update.sql` ยังไม่ได้ push ขึ้นฐานจริง** | ที่มา: แอปแนะนำรถยนต์ "ฝน 92%" แต่ฝนไม่ตก ดูแผน §5.2, §5.3, §5.7 และ Decision Log #43, #44 เทสต์ unit ผ่าน 567 ตัว เทสต์ DB ผ่าน 156/157 (ตัวที่ล้ม `recommendations.test.ts` "lets an unlocked row change freely" ล้มบนโค้ดเดิมด้วย ยังไม่ได้แก้) ค่า 0.5/2 มม. เป็นค่าตั้งต้น ต้องปรับตามการใช้จริง |
 | v2.1 B, C: PM2.5, push, History, settings | โค้ดเสร็จ ยังไม่ commit **migration 2 ตัวยังไม่ได้ push** | ดู "v2.1 ขั้น B และ C" ท้ายไฟล์ |
 
 ## วิธีรันบนเครื่อง

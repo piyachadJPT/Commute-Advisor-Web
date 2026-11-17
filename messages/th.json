@@ -30,7 +30,10 @@
       "bothLow": "โอกาสฝนทั้งสองขาต่ำกว่าเกณฑ์ {threshold}% · สูงสุด <b>{max}%</b>",
       "incomplete": "ยังไม่มีข้อมูลโอกาสฝนช่วง{trip}{source} ({hours})",
       "aboveThreshold": "เกินเกณฑ์ที่ตั้งไว้ {threshold}%",
-      "otherIncomplete": "{trip}ยังไม่มีข้อมูล"
+      "otherIncomplete": "{trip}ยังไม่มีข้อมูล",
+      "causeStorm": "มีพายุฝนฟ้าคะนอง",
+      "causeAmount": "คาดฝน {mm} มม.",
+      "lightRain": "{trip}โอกาสฝน <b>{risk}%</b> แต่คาดว่าฝนเบา ({mm} มม.) · พกชุดกันฝน"
     },
     "trips": "ขาไปและขากลับ",
     "trip": {

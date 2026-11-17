@@ -336,7 +336,10 @@ describe("computeAdvisories: wetRoad", () => {
 
   it("is suppressed when the trip itself is high", () => {
     const got = advise({
-      home: { ...spread(DEP, { prob: 60 }), "08:00": { precipitation: 5 } },
+      home: {
+        ...spread(DEP, { prob: 60, precipitation: 1 }),
+        "08:00": { precipitation: 5 },
+      },
       work: spread(DEP, { prob: 0 }),
     });
     expect(only(got, "wetRoad")).toEqual([]);
@@ -401,7 +404,10 @@ describe("computeAdvisories: rainNearWindow", () => {
 
   it("is suppressed when the trip itself is high", () => {
     const got = advise({
-      home: { ...spread(DEP, { prob: 60 }), "08:00": { prob: 90 } },
+      home: {
+        ...spread(DEP, { prob: 60, precipitation: 1 }),
+        "08:00": { prob: 90 },
+      },
       work: spread(DEP, { prob: 0 }),
     });
     expect(only(got, "rainNearWindow")).toEqual([]);
@@ -545,7 +551,23 @@ describe("advisories never change the verdict (plan §23.1)", () => {
     expect(a.advisories.length).toBeGreaterThan(0);
     expect(b.advisories).toEqual([]);
     expect(a.vehicle).toBe("motorcycle");
-    expect({ ...a, advisories: [] }).toEqual({ ...b, advisories: [] });
+    // The trips record the storm code (v2.2); at 10% it is too weak to count.
+    const plain = (r: typeof a) => ({
+      ...r,
+      advisories: [],
+      departure: { ...r.departure, storm: false },
+      returnTrip: { ...r.returnTrip, storm: false },
+    });
+    expect(plain(a)).toEqual(plain(b));
+  });
+
+  it("a thunderstorm with a real chance of rain does pick the car (v2.2)", () => {
+    const r = run({ ...stormy, prob: 35 });
+    expect(r.vehicle).toBe("car");
+    expect(r.reason).toMatchObject({
+      code: "departureHigh",
+      params: { risk: 35, cause: "storm" },
+    });
   });
 
   it("the snapshot that gets stored and frozen carries the advisories", () => {
