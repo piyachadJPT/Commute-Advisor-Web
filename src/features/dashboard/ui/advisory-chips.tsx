@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icon";
+import { ExpandableChip } from "./expandable-chip";
 import type {
   Advisory,
   AdvisoryCode,
@@ -44,30 +45,28 @@ export function AdvisoryChips({
       {shown.map((a) => {
         const warning = a.level === "warning";
         return (
-          <li
+          <ExpandableChip
             key={a.code}
-            className={`inline-flex max-w-full items-start gap-1 rounded-chip px-2 py-1 text-micro leading-snug font-medium ${
+            className={`rounded-chip px-2 py-1 text-micro leading-snug font-medium ${
               warning
                 ? "border border-risk-very-high bg-fill-soft text-risk-very-high"
                 : "bg-warn-surface text-warn-ink"
             }`}
+            icon={
+              <Icon
+                name={ICON[a.code]}
+                className="mt-px size-[1.125rem] shrink-0"
+              />
+            }
           >
-            <Icon
-              name={ICON[a.code]}
-              className="mt-px size-[1.125rem] shrink-0"
-            />
-            <span className="min-w-0 [overflow-wrap:anywhere]">
-              <span className="sr-only">
-                {t(`advisory.level.${a.level}`)}:{" "}
+            <span className="sr-only">{t(`advisory.level.${a.level}`)}: </span>
+            {warning ? (
+              <span aria-hidden="true" className="font-bold">
+                !{" "}
               </span>
-              {warning ? (
-                <span aria-hidden="true" className="font-bold">
-                  !{" "}
-                </span>
-              ) : null}
-              {t(`advisory.${a.code}`, a.params)}
-            </span>
-          </li>
+            ) : null}
+            {t(`advisory.${a.code}`, a.params)}
+          </ExpandableChip>
         );
       })}
     </ul>
