@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 /**
  * One advisory chip on a single line, cut with "…" when it does not fit. Only a chip that is
@@ -16,26 +16,32 @@ export function ExpandableChip({
   icon: ReactNode;
   children: ReactNode;
 }) {
-  const textRef = useRef<HTMLSpanElement>(null);
+  // The text element is kept in state, not a ref: becoming a button replaces it, and the
+  // measuring must follow the new element. Watching the old one is what kept chips untappable:
+  // once removed it measures 0 wide, reads as "not cut" and turned the button back into a span.
+  const [text, setText] = useState<HTMLSpanElement | null>(null);
   const [open, setOpen] = useState(false);
   const [cut, setCut] = useState(false);
 
   useEffect(() => {
-    const el = textRef.current;
-    if (!el || open) return; // measure folded only; an open chip wraps and never overflows
-    const measure = () => setCut(el.scrollWidth > el.clientWidth + 1);
+    // Measure folded only; an open chip wraps and never overflows.
+    if (!text || open) return;
+    const measure = () => {
+      if (!text.isConnected) return; // a replaced element says nothing about the chip
+      setCut(text.scrollWidth > text.clientWidth + 1);
+    };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(text);
     return () => ro.disconnect();
-  }, [open]);
+  }, [text, open]);
 
   const body = (
     <>
       {icon}
       <span
-        ref={textRef}
-        className={`min-w-0 ${open ? "[overflow-wrap:anywhere]" : "truncate"}`}
+        ref={setText}
+        className={`min-w-0 ${open ? "wrap-anywhere" : "truncate"}`}
       >
         {children}
       </span>
